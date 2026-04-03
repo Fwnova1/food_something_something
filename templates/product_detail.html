@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>{{ product.name }}</h2>
+
+{% if product.image %} <img src="{{ product.image.url }}"
+width="400">
+{% endif %}
+
+<p>{{ product.description }}</p>
+
+<h4>${{ product.price }}</h4>
+
+<button class="btn btn-success">
+Add to Cart
+</button>
+
+{% endblock %}
