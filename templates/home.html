@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Open Food Network{% endblock %}
+
+{% block content %}
+<div class="hero-section text-white d-flex align-items-center" style="min-height: calc(100vh - 80px); background: linear-gradient(135deg, rgba(10, 49, 24, 0.5), rgba(37, 102, 66, 0.5)), url('https://images.unsplash.com/photo-1512135867555-7a5e0ec5e458?auto=format&fit=crop&w=2100&q=80') no-repeat center/cover;">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-7">
+                <h1 class="display-3 fw-bold mb-3" style="text-shadow: 2px 2px 12px rgba(0,0,0,0.6);">Welcome to Open Food Network</h1>
+                <p class="lead mb-4" style="text-shadow: 1px 1px 8px rgba(0,0,0,0.5);">Connecting local producers and consumers across Bristol with fresh, sustainable produce and community-powered delivery.</p>
+                <a href="{% url 'product_list' %}" class="btn btn-lg btn-success me-2" style="border-radius: 30px;">
+                    <i class="fas fa-shopping-bag"></i> Find Local Produce
+                </a>
+                <a href="#features" class="btn btn-outline-light btn-lg" style="border-radius: 30px;">
+                    <i class="fas fa-map-marker-alt"></i> Find Your Local OFN
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section id="features" class="py-5">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-4 mb-4">
+                <div class="card bg-white p-4 h-100" style="border-radius: 18px; box-shadow: 0 8px 25px rgba(0,0,0,0.1);">
+                    <div class="mb-3"><i class="fas fa-leaf fa-2x text-success"></i></div>
+                    <h5>Fair, local, transparent</h5>
+                    <p>We support small farms and give you clear marketplace pricing with 5% network commission.</p>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card bg-white p-4 h-100" style="border-radius: 18px; box-shadow: 0 8px 25px rgba(0,0,0,0.1);">
+                    <div class="mb-3"><i class="fas fa-carrot fa-2x text-success"></i></div>
+                    <h5>Seasonal & traceable</h5>
+                    <p>Product origin, harvest dates, allergen info, and “food miles” built into every listing.</p>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card bg-white p-4 h-100" style="border-radius: 18px; box-shadow: 0 8px 25px rgba(0,0,0,0.1);">
+                    <div class="mb-3"><i class="fas fa-heart fa-2x text-success"></i></div>
+                    <h5>Community-focused</h5>
+                    <p>Surplus alerts, recipe sharing, and partnerships for schools & care facilities.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
