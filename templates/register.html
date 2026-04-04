@@ -4,55 +4,55 @@
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-6 col-lg-4">
-        <div class="card shadow">
-            <div class="card-body">
+    <div class="col-md-7 col-lg-6 col-xl-5">
+        <div class="card card-soft shadow-sm fade-stagger">
+            <div class="card-body p-4">
                 <h2 class="card-title text-center mb-4">
-                    <i class="fas fa-user-plus text-success"></i> Register
+                    <i class="fas fa-user-plus text-success me-2"></i>Create Account
                 </h2>
-                <form method="post">
+                <form method="post" class="d-grid gap-3">
                     {% csrf_token %}
-                    <div class="mb-3">
+                    <div>
                         <label for="{{ form.username.id_for_label }}" class="form-label">Username</label>
                         {{ form.username }}
                         {% if form.username.errors %}
-                            <div class="text-danger">{{ form.username.errors }}</div>
+                            <div class="text-danger small mt-1">{{ form.username.errors }}</div>
                         {% endif %}
                     </div>
-                    <div class="mb-3">
+                    <div>
                         <label for="{{ form.email.id_for_label }}" class="form-label">Email</label>
                         {{ form.email }}
                         {% if form.email.errors %}
-                            <div class="text-danger">{{ form.email.errors }}</div>
+                            <div class="text-danger small mt-1">{{ form.email.errors }}</div>
                         {% endif %}
                     </div>
-                    <div class="mb-3">
+                    <div>
                         <label for="{{ form.role.id_for_label }}" class="form-label">Role</label>
                         {{ form.role }}
                         {% if form.role.errors %}
-                            <div class="text-danger">{{ form.role.errors }}</div>
+                            <div class="text-danger small mt-1">{{ form.role.errors }}</div>
                         {% endif %}
                     </div>
-                    <div class="mb-3">
+                    <div>
                         <label for="{{ form.password1.id_for_label }}" class="form-label">Password</label>
                         {{ form.password1 }}
                         {% if form.password1.errors %}
-                            <div class="text-danger">{{ form.password1.errors }}</div>
+                            <div class="text-danger small mt-1">{{ form.password1.errors }}</div>
                         {% endif %}
                     </div>
-                    <div class="mb-3">
+                    <div>
                         <label for="{{ form.password2.id_for_label }}" class="form-label">Confirm Password</label>
                         {{ form.password2 }}
                         {% if form.password2.errors %}
-                            <div class="text-danger">{{ form.password2.errors }}</div>
+                            <div class="text-danger small mt-1">{{ form.password2.errors }}</div>
                         {% endif %}
                     </div>
                     <button type="submit" class="btn btn-success w-100">
-                        <i class="fas fa-user-plus"></i> Register
+                        <i class="fas fa-user-plus me-1"></i> Register
                     </button>
                 </form>
                 <div class="text-center mt-3">
-                    <p>Already have an account? <a href="{% url 'login' %}" class="text-success">Login here</a></p>
+                    <p class="mb-0">Already have an account? <a href="{% url 'login' %}" class="text-success fw-semibold">Login here</a></p>
                 </div>
             </div>
         </div>

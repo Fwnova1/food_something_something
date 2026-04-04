@@ -4,88 +4,152 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Local Food Marketplace{% endblock %}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
+        :root {
+            --bg-soft: #f6f3ed;
+            --bg-card: #fffdf8;
+            --brand: #1f7a4d;
+            --brand-dark: #155236;
+            --accent: #d9862a;
+            --text: #1f2937;
+            --muted: #6b7280;
+            --ring: rgba(31, 122, 77, 0.25);
+        }
         body {
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            font-family: 'Nunito', sans-serif;
+            margin: 0;
+            min-height: 100vh;
+            color: var(--text);
+            font-family: "Manrope", sans-serif;
+            background:
+                radial-gradient(circle at 10% 20%, rgba(217, 134, 42, 0.13), transparent 28%),
+                radial-gradient(circle at 85% 5%, rgba(31, 122, 77, 0.16), transparent 30%),
+                linear-gradient(180deg, #faf8f4 0%, var(--bg-soft) 100%);
+        }
+        h1, h2, h3, h4, h5 {
+            font-family: "Fraunces", serif;
+            letter-spacing: 0.01em;
+        }
+        .navbar {
+            background: rgba(17, 35, 28, 0.92) !important;
+            backdrop-filter: blur(6px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
         .navbar-brand {
-            font-weight: bold;
-            color: #ff6b9d !important;
-            font-size: 1.5rem;
+            color: #fef3c7 !important;
+            font-family: "Fraunces", serif;
+            font-size: 1.35rem;
+            letter-spacing: 0.02em;
         }
-        .navbar-brand:hover {
-            color: #ff8fab !important;
+        .nav-link {
+            color: rgba(255, 255, 255, 0.86) !important;
+            font-weight: 600;
+        }
+        .nav-link:hover {
+            color: #fef3c7 !important;
+        }
+        .page-shell {
+            animation: fade-up 0.55s ease-out;
         }
         .card {
-            border: none;
-            border-radius: 20px;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-            transition: all 0.3s ease;
-            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(31, 122, 77, 0.08);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(10, 20, 15, 0.08);
+            background: var(--bg-card);
         }
-        .card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+        .card-soft {
+            background: rgba(255, 253, 248, 0.88);
+            backdrop-filter: blur(2px);
         }
         .btn-success {
-            background: linear-gradient(45deg, #ff6b9d, #ffa8c2);
             border: none;
-            border-radius: 25px;
-            font-weight: bold;
-            transition: all 0.3s ease;
+            font-weight: 700;
+            border-radius: 999px;
+            padding-inline: 1rem;
+            background: linear-gradient(110deg, var(--brand), #249c61);
+            box-shadow: 0 8px 16px rgba(31, 122, 77, 0.22);
         }
         .btn-success:hover {
-            background: linear-gradient(45deg, #ff8fab, #ffb3c7);
-            transform: scale(1.05);
+            background: linear-gradient(110deg, var(--brand-dark), var(--brand));
+            transform: translateY(-1px);
         }
         .btn-outline-success {
-            border-color: #ff6b9d;
-            color: #ff6b9d;
-            border-radius: 25px;
+            border-radius: 999px;
+            font-weight: 700;
+            color: var(--brand);
+            border-color: var(--brand);
         }
         .btn-outline-success:hover {
-            background: #ff6b9d;
-            border-color: #ff6b9d;
-        }
-        .display-4 {
-            color: #ff6b9d;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            background: var(--brand);
+            border-color: var(--brand);
         }
         .text-success {
-            color: #ff6b9d !important;
+            color: var(--brand) !important;
+        }
+        .form-control,
+        input[type="text"],
+        input[type="password"],
+        input[type="email"],
+        select {
+            width: 100%;
+            border-radius: 12px;
+            border: 1px solid #d8ddd5;
+            padding: 0.65rem 0.8rem;
+            background: #ffffff;
+        }
+        .form-control:focus,
+        input[type="text"]:focus,
+        input[type="password"]:focus,
+        input[type="email"]:focus,
+        select:focus {
+            border-color: var(--brand);
+            box-shadow: 0 0 0 0.25rem var(--ring);
+            outline: none;
+        }
+        .badge-soft {
+            border-radius: 999px;
+            padding: 0.35rem 0.7rem;
+            color: #8b5a1f;
+            background: rgba(217, 134, 42, 0.14);
+            border: 1px solid rgba(217, 134, 42, 0.25);
+            font-weight: 700;
+        }
+        .section-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .table thead th {
+            background: #ecf4ef;
+            color: #214a34;
         }
         footer {
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            color: white;
-            border-radius: 20px 20px 0 0;
-            margin-top: 50px;
+            margin-top: 4rem;
+            background: linear-gradient(110deg, #11241d 0%, #1d4735 100%);
+            color: #effaf1;
         }
-        .table-success {
-            background: linear-gradient(45deg, #ff6b9d, #ffa8c2);
+        .fade-stagger {
+            animation: fade-up 0.6s ease-out both;
         }
-        .alert {
-            border-radius: 15px;
+        @keyframes fade-up {
+            0% {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
-        .form-control {
-            border-radius: 15px;
-            border: 2px solid #e9ecef;
-        }
-        .form-control:focus {
-            border-color: #ff6b9d;
-            box-shadow: 0 0 0 0.2rem rgba(255, 107, 157, 0.25);
-        }
-        .card-img-top {
-            border-radius: 20px 20px 0 0;
-        }
-        .img-fluid {
-            border-radius: 20px;
-        }
-        .fa-leaf, .fa-apple-alt, .fa-user, .fa-shopping-cart, .fa-credit-card {
-            color: #ff6b9d;
+        @media (max-width: 767px) {
+            .section-head {
+                align-items: stretch;
+                flex-direction: column;
+            }
         }
     </style>
 </head>
@@ -105,7 +169,7 @@
                     </li>
                     {% if user.is_authenticated and user.role == 'producer' %}
                     <li class="nav-item">
-                        <a class="nav-link" href="#">Dashboard</a>
+                        <a class="nav-link" href="{% url 'producer_manage_products' %}">Producer Hub</a>
                     </li>
                     {% endif %}
                 </ul>
@@ -137,7 +201,7 @@
         </div>
     </nav>
 
-    <div class="container mt-4">
+    <main class="container mt-4 page-shell">
         {% if messages %}
             {% for message in messages %}
                 <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
@@ -147,12 +211,12 @@
             {% endfor %}
         {% endif %}
         {% block content %}{% endblock %}
-    </div>
+    </main>
 
-    <footer class="text-center">
-        <div class="container">
-            <p>&copy; 2026 Bristol Regional Food Network. All rights reserved.</p>
-            <p>Connecting local producers with consumers in Bristol.</p>
+    <footer class="text-center py-4">
+        <div class="container small">
+            <p class="mb-1">&copy; 2026 Bristol Regional Food Network. All rights reserved.</p>
+            <p class="mb-0">Connecting local producers with consumers in Bristol.</p>
         </div>
     </footer>
 

@@ -3,75 +3,67 @@
 {% block title %}Shopping Cart - Local Food Marketplace{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12">
-        <h2 class="mb-4">
-            <i class="fas fa-shopping-cart fa-bounce"></i> Your Cute Shopping Cart 🛒
-        </h2>
-        {% if cart_items %}
-            <div class="card shadow">
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead class="table-success">
-                                <tr>
-                                    <th>Product</th>
-                                    <th>Price</th>
-                                    <th>Quantity</th>
-                                    <th>Total</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for item in cart_items %}
-                                <tr>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            {% if item.product.image %}
-                                                <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" class="me-3" style="width: 50px; height: 50px; object-fit: cover;">
-                                            {% endif %}
-                                            <div>
-                                                <h6 class="mb-0">{{ item.product.name }}</h6>
-                                                <small class="text-muted">{{ item.product.category.name }}</small>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>${{ item.product.price }}</td>
-                                    <td>{{ item.quantity }}</td>
-                                    <td><strong>${{ item.total }}</strong></td>
-                                    <td>
-                                        <button class="btn btn-sm btn-outline-danger">
-                                            <i class="fas fa-trash"></i> Remove
-                                        </button>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center mt-3">
-                        <h4 class="text-success">Total: ${{ total }}</h4>
-                        <div>
-                            <a href="{% url 'product_list' %}" class="btn btn-outline-secondary me-2">
-                                <i class="fas fa-arrow-left"></i> Continue Shopping
-                            </a>
-                            <a href="{% url 'checkout' %}" class="btn btn-success">
-                                <i class="fas fa-credit-card"></i> Checkout
-                            </a>
+<div class="section-head">
+    <h2 class="mb-0"><i class="fas fa-shopping-cart text-success me-2"></i>Your Shopping Cart</h2>
+</div>
+
+{% if cart_items %}
+<div class="card card-soft p-3 p-md-4 fade-stagger">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Price</th>
+                    <th>Quantity</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in cart_items %}
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center gap-3">
+                            {% if item.product.image %}
+                                <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" style="width: 56px; height: 56px; object-fit: cover; border-radius: 10px;">
+                            {% endif %}
+                            <div>
+                                <h6 class="mb-1">{{ item.product.name }}</h6>
+                                <small class="text-muted">{{ item.product.category.name }}</small>
+                            </div>
                         </div>
-                    </div>
-                </div>
-            </div>
-        {% else %}
-            <div class="text-center">
-                <i class="fas fa-shopping-cart fa-5x text-muted mb-3 fa-bounce"></i>
-                <h4 class="text-muted">Your cart is empty 😢</h4>
-                <p>Start shopping to fill it with yummy goodies!</p>
-                <a href="{% url 'product_list' %}" class="btn btn-success">
-                    <i class="fas fa-shopping-bag"></i> Browse Products 🛍️
-                </a>
-            </div>
-        {% endif %}
+                    </td>
+                    <td>${{ item.product.price }}</td>
+                    <td>{{ item.quantity }}</td>
+                    <td><strong>${{ item.total }}</strong></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3">
+        <h4 class="text-success mb-0">Total: ${{ total }}</h4>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{% url 'product_list' %}" class="btn btn-outline-success">
+                <i class="fas fa-arrow-left me-1"></i> Continue Shopping
+            </a>
+            <a href="{% url 'checkout' %}" class="btn btn-success">
+                <i class="fas fa-credit-card me-1"></i> Checkout
+            </a>
+        </div>
     </div>
 </div>
+{% else %}
+<div class="card card-soft text-center py-5 fade-stagger">
+    <i class="fas fa-shopping-cart fa-4x text-muted mb-3"></i>
+    <h4 class="text-muted">Your cart is empty</h4>
+    <p>Start shopping to fill it with local products.</p>
+    <div>
+        <a href="{% url 'product_list' %}" class="btn btn-success">
+            <i class="fas fa-shopping-bag me-1"></i> Browse Products
+        </a>
+    </div>
+</div>
+{% endif %}
 {% endblock %}

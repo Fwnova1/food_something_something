@@ -3,38 +3,40 @@
 {% block title %}{{ product.name }} - Local Food Marketplace{% endblock %}
 
 {% block content %}
-<div class="row">
+<div class="row g-4 align-items-start">
     <div class="col-md-6">
-        {% if product.image %}
-            <img src="{{ product.image.url }}" class="img-fluid rounded" alt="{{ product.name }}">
-        {% else %}
-            <div class="bg-light d-flex align-items-center justify-content-center rounded" style="height: 400px;">
-                <i class="fas fa-image fa-5x text-muted"></i>
-            </div>
-        {% endif %}
+        <div class="card card-soft overflow-hidden fade-stagger">
+            {% if product.image %}
+                <img src="{{ product.image.url }}" class="img-fluid" alt="{{ product.name }}" style="width: 100%; max-height: 460px; object-fit: cover;">
+            {% else %}
+                <div class="bg-light d-flex align-items-center justify-content-center" style="height: 400px;">
+                    <i class="fas fa-image fa-5x text-muted"></i>
+                </div>
+            {% endif %}
+        </div>
     </div>
     <div class="col-md-6">
-        <h1 class="text-success">{{ product.name }}</h1>
-        <p class="lead">{{ product.description }}</p>
-        <h3 class="text-success mb-4">${{ product.price }}</h3>
-        <div class="mb-3">
-            <strong>Category:</strong> {{ product.category.name }}
+        <div class="card card-soft p-4 fade-stagger" style="animation-delay: 0.08s;">
+            <span class="badge-soft mb-3 d-inline-block">{{ product.category.name }}</span>
+            <h1 class="text-success">{{ product.name }}</h1>
+            <p class="lead">{{ product.description }}</p>
+            <h3 class="text-success mb-4">${{ product.price }}</h3>
+            <div class="mb-3"><strong>Producer:</strong> {{ product.producer.username }}</div>
+            <div class="d-flex flex-wrap gap-2 mt-4">
+                {% if user.is_authenticated %}
+                    <a href="{% url 'add_to_cart' product.id %}" class="btn btn-success btn-lg">
+                        <i class="fas fa-cart-plus me-1"></i> Add to Cart
+                    </a>
+                {% else %}
+                    <a href="{% url 'login' %}" class="btn btn-success btn-lg">
+                        <i class="fas fa-sign-in-alt me-1"></i> Login to Add
+                    </a>
+                {% endif %}
+                <a href="{% url 'product_list' %}" class="btn btn-outline-success btn-lg">
+                    <i class="fas fa-arrow-left me-1"></i> Back to Products
+                </a>
+            </div>
         </div>
-        <div class="mb-3">
-            <strong>Producer:</strong> {{ product.producer.username }}
-        </div>
-        {% if user.is_authenticated %}
-            <a href="{% url 'add_to_cart' product.id %}" class="btn btn-success btn-lg me-2">
-                <i class="fas fa-cart-plus"></i> Add to Cart
-            </a>
-        {% else %}
-            <a href="{% url 'login' %}" class="btn btn-success btn-lg me-2">
-                <i class="fas fa-sign-in-alt"></i> Login to Add to Cart
-            </a>
-        {% endif %}
-        <a href="{% url 'product_list' %}" class="btn btn-outline-secondary btn-lg">
-            <i class="fas fa-arrow-left"></i> Back to Products
-        </a>
     </div>
 </div>
 {% endblock %}
