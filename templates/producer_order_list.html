@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Producer Orders - Confirm and Ship{% endblock %}
+
+{% block content %}
+<div class="section-head">
+    <h2 class="mb-0"><i class="fas fa-clipboard-check text-success me-2"></i>Producer Orders</h2>
+    <a href="{% url 'producer_manage_products' %}" class="btn btn-outline-success">
+        <i class="fas fa-box-open me-1"></i> Manage Products
+    </a>
+</div>
+
+<div class="card card-soft p-4 fade-stagger">
+    {% if order_rows %}
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Order</th>
+                    <th>Customer</th>
+                    <th>Date</th>
+                    <th>Your Items</th>
+                    <th>Your Total</th>
+                    <th>Shipping Progress</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in order_rows %}
+                <tr>
+                    <td>#{{ row.order.id }}</td>
+                    <td>{{ row.order.user.username }}</td>
+                    <td>{{ row.order.created_at|date:"M j, Y, g:i A" }}</td>
+                    <td>{{ row.producer_quantity }}</td>
+                    <td>${{ row.producer_total }}</td>
+                    <td>{{ row.shipped_producers }}/{{ row.total_producers }} vendors shipped</td>
+                    <td><span class="badge-soft">{{ row.order.status|title }}</span></td>
+                    <td>
+                        {% if row.order.status == "pending" %}
+                        <form method="post" action="{% url 'producer_confirm_order' row.order.id %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-success">Confirm</button>
+                        </form>
+                        {% elif row.order.status == "confirmed" %}
+                            {% if row.producer_shipped %}
+                            <span class="text-muted small">You shipped</span>
+                            {% else %}
+                            <form method="post" action="{% url 'producer_ship_order' row.order.id %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-success">Mark Your Items Shipped</button>
+                            </form>
+                            {% endif %}
+                        {% else %}
+                        <span class="text-muted small">No action</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-4">
+        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+        <h5 class="mb-2">No orders to confirm</h5>
+        <p class="text-muted mb-0">Orders that include your products will appear here.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

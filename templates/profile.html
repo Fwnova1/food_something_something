@@ -26,9 +26,15 @@
                             <a href="{% url 'cart' %}" class="btn btn-outline-success">
                                 <i class="fas fa-shopping-cart me-1"></i> View Cart
                             </a>
+                            <a href="{% url 'order_list' %}" class="btn btn-outline-success">
+                                <i class="fas fa-receipt me-1"></i> My Orders
+                            </a>
                             {% if user.role == 'producer' %}
                             <a href="{% url 'producer_manage_products' %}" class="btn btn-outline-success">
                                 <i class="fas fa-box-open me-1"></i> Manage Products
+                            </a>
+                            <a href="{% url 'producer_order_list' %}" class="btn btn-outline-success">
+                                <i class="fas fa-clipboard-check me-1"></i> Confirm Orders
                             </a>
                             {% endif %}
                             <a href="{% url 'logout' %}" class="btn btn-success">

@@ -171,6 +171,9 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'producer_manage_products' %}">Producer Hub</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'producer_order_list' %}">Producer Orders</a>
+                    </li>
                     {% endif %}
                 </ul>
                 <ul class="navbar-nav">
@@ -178,6 +181,11 @@
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'cart' %}">
                                 <i class="fas fa-shopping-cart"></i> Cart
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'order_list' %}">
+                                <i class="fas fa-receipt"></i> Orders
                             </a>
                         </li>
                         <li class="nav-item">

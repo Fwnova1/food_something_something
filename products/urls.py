@@ -13,6 +13,12 @@ from .views_frontend import (
     producer_manage_products,
     producer_edit_product,
     producer_delete_product,
+    order_list_view,
+    order_detail_view,
+    producer_order_list_view,
+    producer_confirm_order_view,
+    producer_ship_order_view,
+    customer_confirm_delivery_view,
 )
 
 urlpatterns = [
@@ -25,8 +31,14 @@ urlpatterns = [
     path("logout/", logout_view, name="logout"),
     path("cart/", cart_view, name="cart"),
     path("checkout/", checkout_view, name="checkout"),
+    path("orders/", order_list_view, name="order_list"),
+    path("orders/<int:pk>/", order_detail_view, name="order_detail"),
     path("producer/products/", producer_manage_products, name="producer_manage_products"),
     path("producer/products/add/", producer_add_product, name="producer_add_product"),
     path("producer/products/<int:pk>/edit/", producer_edit_product, name="producer_edit_product"),
     path("producer/products/<int:pk>/delete/", producer_delete_product, name="producer_delete_product"),
+    path("producer/orders/", producer_order_list_view, name="producer_order_list"),
+    path("producer/orders/<int:pk>/confirm/", producer_confirm_order_view, name="producer_confirm_order"),
+    path("producer/orders/<int:pk>/ship/", producer_ship_order_view, name="producer_ship_order"),
+    path("orders/<int:pk>/confirm-delivery/", customer_confirm_delivery_view, name="customer_confirm_delivery"),
 ]
