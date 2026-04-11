@@ -10,6 +10,24 @@
     </a>
 </div>
 
+<div class="card card-soft p-3 mb-4">
+    <form method="get" class="row g-2">
+        <div class="col-md-4">
+            <input type="text" class="form-control" name="producer" placeholder="Filter by producer" value="{{ producer_filter }}">
+        </div>
+        <div class="col-md-3">
+            <input type="date" class="form-control" name="date_from" value="{{ date_from }}">
+        </div>
+        <div class="col-md-3">
+            <input type="date" class="form-control" name="date_to" value="{{ date_to }}">
+        </div>
+        <div class="col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-success w-100">Apply</button>
+            <a href="{% url 'order_list' %}" class="btn btn-outline-secondary">Clear</a>
+        </div>
+    </form>
+</div>
+
 <div class="card card-soft p-4 fade-stagger">
     {% if orders %}
     <div class="table-responsive">
@@ -33,9 +51,13 @@
                     </td>
                     <td>${{ order.total }}</td>
                     <td>
-                        <a href="{% url 'order_detail' order.id %}" class="btn btn-sm btn-outline-success">
+                        <a href="{% url 'order_detail' order.id %}" class="btn btn-sm btn-outline-success me-1">
                             View Details
                         </a>
+                        <form method="post" action="{% url 'reorder_order' order.id %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-success">Reorder</button>
+                        </form>
                     </td>
                 </tr>
                 {% endfor %}

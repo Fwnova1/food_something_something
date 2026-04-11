@@ -41,11 +41,57 @@
                     {% endif %}
                 </div>
                 <div>
+                    <label for="{{ form.unit.id_for_label }}" class="form-label">Unit</label>
+                    {{ form.unit }}
+                    {% if form.unit.errors %}
+                    <div class="text-danger small mt-1">{{ form.unit.errors }}</div>
+                    {% endif %}
+                </div>
+                <div>
                     <label for="{{ form.category.id_for_label }}" class="form-label">Category</label>
                     {{ form.category }}
                     {% if form.category.errors %}
                     <div class="text-danger small mt-1">{{ form.category.errors }}</div>
                     {% endif %}
+                </div>
+                <div>
+                    <label for="{{ form.availability.id_for_label }}" class="form-label">Availability</label>
+                    {{ form.availability }}
+                    {% if form.availability.errors %}
+                    <div class="text-danger small mt-1">{{ form.availability.errors }}</div>
+                    {% endif %}
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <label for="{{ form.stock_quantity.id_for_label }}" class="form-label">Stock Quantity</label>
+                        {{ form.stock_quantity }}
+                    </div>
+                    <div class="col-md-6">
+                        <label for="{{ form.low_stock_threshold.id_for_label }}" class="form-label">Low Stock Threshold</label>
+                        {{ form.low_stock_threshold }}
+                    </div>
+                </div>
+                <div>
+                    <label for="{{ form.allergen_info.id_for_label }}" class="form-label">Allergen Information</label>
+                    {{ form.allergen_info }}
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <label for="{{ form.harvest_date.id_for_label }}" class="form-label">Harvest Date</label>
+                        {{ form.harvest_date }}
+                    </div>
+                    <div class="col-md-4">
+                        <label for="{{ form.seasonal_start.id_for_label }}" class="form-label">Season Start</label>
+                        {{ form.seasonal_start }}
+                    </div>
+                    <div class="col-md-4">
+                        <label for="{{ form.seasonal_end.id_for_label }}" class="form-label">Season End</label>
+                        {{ form.seasonal_end }}
+                    </div>
+                </div>
+                <div class="form-check">
+                    {{ form.is_organic }}
+                    <label class="form-check-label" for="{{ form.is_organic.id_for_label }}">Certified Organic</label>
                 </div>
                 <div>
                     <label for="{{ form.image.id_for_label }}" class="form-label">Product Image</label>
@@ -83,7 +129,7 @@
                                 </a>
                             </td>
                             <td>{{ product.category.name }}</td>
-                            <td>${{ product.price }}</td>
+                            <td>${{ product.price }} / {{ product.unit }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>

@@ -14,9 +14,15 @@
                     <h5 class="card-title mb-0">{{ product.name }}</h5>
                     <span class="badge-soft">{{ product.category.name }}</span>
                 </div>
+                <p class="small text-muted mb-2">By {{ product.producer.username }}</p>
                 <p class="card-text text-muted">{{ product.description|truncatechars:100 }}</p>
+                <div class="d-flex flex-wrap gap-2 mb-2">
+                    {% if product.is_organic %}<span class="badge-soft">Organic</span>{% endif %}
+                    {% if product.allergen_info %}<span class="badge-soft">Allergen Info</span>{% endif %}
+                    <span class="badge-soft">{{ product.get_availability_display }}</span>
+                </div>
                 <div class="mt-auto d-flex justify-content-between align-items-center gap-2">
-                    <p class="h5 text-success mb-0">${{ product.price }}</p>
+                    <p class="h5 text-success mb-0">${{ product.price }} / {{ product.unit }}</p>
                     <a href="{% url 'product_detail' product.id %}" class="btn btn-success">
                         <i class="fas fa-eye me-1"></i>View
                     </a>

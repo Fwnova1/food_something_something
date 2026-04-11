@@ -19,18 +19,28 @@
                     <thead>
                         <tr>
                             <th>Product</th>
+                            <th>Producer</th>
                             <th>Unit Price</th>
                             <th>Qty</th>
                             <th>Subtotal</th>
+                            <th>Review</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for item in item_rows %}
                         <tr>
                             <td>{{ item.product_name }}</td>
+                            <td>{{ item.producer_name }}</td>
                             <td>${{ item.price }}</td>
                             <td>{{ item.quantity }}</td>
                             <td>${{ item.subtotal }}</td>
+                            <td>
+                                {% if item.can_review %}
+                                <a href="{% url 'submit_review' order.id item.product_id %}" class="btn btn-sm btn-outline-success">Write Review</a>
+                                {% else %}
+                                <span class="text-muted small">-</span>
+                                {% endif %}
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -39,6 +49,12 @@
             <div class="d-flex justify-content-end">
                 <h5 class="text-success mb-0">Total: ${{ order.total }}</h5>
             </div>
+            <div class="d-flex justify-content-end mt-3">
+                <form method="post" action="{% url 'create_recurring_from_order' order.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-success btn-sm">Make Recurring</button>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -46,6 +62,11 @@
         <div class="card card-soft p-4 fade-stagger" style="animation-delay: 0.08s;">
             <h4 class="mb-3">Tracking</h4>
             <p class="mb-2"><strong>Placed:</strong> {{ order.created_at|date:"M j, Y, g:i A" }}</p>
+            <p class="mb-2"><strong>Delivery Address:</strong> {{ order.delivery_address|default:"-" }}</p>
+            <p class="mb-2"><strong>Delivery Postcode:</strong> {{ order.delivery_postcode|default:"-" }}</p>
+            {% if order.customer_note %}
+            <p class="mb-2"><strong>Delivery Note:</strong> {{ order.customer_note }}</p>
+            {% endif %}
             <p class="mb-3"><strong>Status:</strong> <span class="badge-soft">{{ order.status|title }}</span></p>
             {% if order.status == "shipped" %}
             <form method="post" action="{% url 'customer_confirm_delivery' order.id %}" class="mb-3">

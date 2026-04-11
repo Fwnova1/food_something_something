@@ -20,6 +20,8 @@
                     <th>Name</th>
                     <th>Category</th>
                     <th>Price</th>
+                    <th>Availability</th>
+                    <th>Stock</th>
                     <th>Created</th>
                     <th>Actions</th>
                 </tr>
@@ -42,7 +44,9 @@
                         </a>
                     </td>
                     <td>{{ product.category.name }}</td>
-                    <td>${{ product.price }}</td>
+                    <td>${{ product.price }} / {{ product.unit }}</td>
+                    <td>{{ product.get_availability_display }}</td>
+                    <td>{{ product.stock_quantity }}</td>
                     <td>{{ product.created_at|date:"M j, Y" }}</td>
                     <td>
                         <div class="d-flex gap-2">
