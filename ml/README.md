@@ -25,7 +25,7 @@ python ml\check_inference_env.py
 
 If that succeeds, the Django quality inspection service can use:
 
-- `weights/fruit_fresh_rotten_model.keras`
+- `weights/fruit_vegetable_classifier.h5`
 - `weights/quality_multi_output_model.keras`
 - `weights/quality_multi_output_metadata.json`
 
@@ -41,9 +41,9 @@ You need a CSV with these columns:
 - `ripeness_score`
 - `grade`
 
-### Bootstrap labels from the current fresh/rotten dataset
+### Bootstrap labels from the current healthy/rotten dataset
 
-If your dataset only contains folder labels like `fresh apple` and `rotten banana`, bootstrap a weakly-labeled CSV first:
+If your dataset only contains folder labels like `healthy apple` and `rotten banana`, bootstrap a weakly-labeled CSV first:
 
 ```powershell
 python ml\bootstrap_quality_labels.py --dataset-root E:\datasets\fruit-veg --output-csv artifacts\quality_labels.csv
@@ -67,7 +67,7 @@ python ml\train_quality_model.py ^
 `products/quality_inspection.py` follows this order:
 
 1. Try `weights/quality_multi_output_model.keras` plus metadata JSON.
-2. Otherwise try `weights/fruit_fresh_rotten_model.keras` for freshness only.
+2. Otherwise try `weights/fruit_vegetable_classifier.h5`.
 3. Otherwise fall back to heuristic image analysis.
 
 That means once you place the trained multi-output model in `weights/`, the app can use it without further code changes.

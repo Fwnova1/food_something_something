@@ -13,6 +13,11 @@ from PIL import Image, ImageStat
 SUPPORTED_PRODUCE = {
     "apple": ("apple", "apples"),
     "banana": ("banana", "bananas"),
+    "bellpepper": ("bellpepper", "bell pepper", "bell_pepper", "capsicum"),
+    "grape": ("grape", "grapes"),
+    "guava": ("guava", "guavas"),
+    "jujube": ("jujube", "jujubes"),
+    "mango": ("mango", "mangoes", "mangos"),
     "orange": ("orange", "oranges"),
     "tomato": ("tomato", "tomatoes"),
     "carrot": ("carrot", "carrots"),
@@ -20,19 +25,20 @@ SUPPORTED_PRODUCE = {
 }
 
 MODEL_LABELS_12 = [
-    "fresh_apple",
+    "healthy_apple",
     "rotten_apple",
-    "fresh_banana",
+    "healthy_banana",
     "rotten_banana",
-    "fresh_orange",
+    "healthy_orange",
     "rotten_orange",
-    "fresh_tomato",
+    "healthy_tomato",
     "rotten_tomato",
-    "fresh_carrot",
+    "healthy_carrot",
     "rotten_carrot",
-    "fresh_cucumber",
+    "healthy_cucumber",
     "rotten_cucumber",
 ]
+MODEL_PRODUCE_LABELS = list(SUPPORTED_PRODUCE.keys())
 
 
 @dataclass
@@ -67,6 +73,20 @@ def _infer_produce_type(name: str) -> str:
         if any(token in normalized for token in variants):
             return produce_type
     return ""
+
+
+def _normalize_produce_token(value: str) -> str:
+    normalized = (value or "").strip().lower().replace("-", " ").replace("_", " ")
+    normalized = " ".join(normalized.split())
+    for produce_type, variants in SUPPORTED_PRODUCE.items():
+        if normalized == produce_type or normalized in variants:
+            return produce_type
+    collapsed = normalized.replace(" ", "")
+    for produce_type, variants in SUPPORTED_PRODUCE.items():
+        variant_tokens = {produce_type, *(variant.replace(" ", "") for variant in variants)}
+        if collapsed in variant_tokens:
+            return produce_type
+    return normalized.replace(" ", "_")
 
 
 def _open_image(image_source) -> Image.Image:
@@ -178,6 +198,66 @@ def _build_explanation(color_score: int, size_score: int, ripeness_score: int, f
     )
 
 
+def _normalize_freshness_label(label: str) -> str:
+    normalized = (label or "").strip().lower()
+    if normalized in {"healthy", "fresh"}:
+        return "healthy"
+    if normalized == "rotten":
+        return "rotten"
+    return "unknown"
+
+
+def _classifier_labels_path() -> Path:
+    return Path(settings.BASE_DIR) / "weights" / "fruit_vegetable_classifier_labels.json"
+
+
+def _load_classifier_metadata() -> dict:
+    labels_path = _classifier_labels_path()
+    if not labels_path.exists():
+        return {}
+
+    try:
+        raw_data = json.loads(labels_path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+    return raw_data if isinstance(raw_data, dict) else {"labels": raw_data}
+
+
+def _load_classifier_labels() -> list[str]:
+    raw_data = _load_classifier_metadata()
+    if not raw_data:
+        return []
+
+    if isinstance(raw_data, dict):
+        if "class_indices" in raw_data and isinstance(raw_data["class_indices"], dict):
+            return [label for label, _ in sorted(raw_data["class_indices"].items(), key=lambda item: int(item[1]))]
+        if "labels" in raw_data and isinstance(raw_data["labels"], list):
+            return [str(label) for label in raw_data["labels"]]
+
+    if isinstance(raw_data, list):
+        return [str(label) for label in raw_data]
+
+    return []
+
+
+def _parse_classifier_label(label: str) -> tuple[str, str]:
+    raw_label = (label or "").strip()
+    if not raw_label:
+        return "", "unknown"
+
+    normalized = raw_label.replace("-", "_").replace("__", "_")
+    parts = [part for part in normalized.split("_") if part]
+    if len(parts) >= 2:
+        freshness_candidates = {_normalize_freshness_label(part) for part in parts}
+        freshness_label = next((candidate for candidate in freshness_candidates if candidate != "unknown"), "unknown")
+        produce_parts = [part for part in parts if _normalize_freshness_label(part) == "unknown"]
+        produce_type = _normalize_produce_token("_".join(produce_parts)) if produce_parts else ""
+        return produce_type, freshness_label
+
+    return _normalize_produce_token(raw_label), "unknown"
+
+
 def _quality_model_paths() -> tuple[Path, Path]:
     weights_dir = Path(settings.BASE_DIR) / "weights"
     return (
@@ -199,7 +279,7 @@ def _predict_multi_output_quality_with_keras(image: Image.Image) -> QualityInspe
     metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
     image_size = int(metadata.get("image_size", 224))
     produce_labels = metadata.get("produce_labels", [])
-    freshness_labels = metadata.get("freshness_labels", ["fresh", "rotten"])
+    freshness_labels = metadata.get("freshness_labels", ["healthy", "rotten"])
     grade_labels = metadata.get("grade_labels", ["A", "B", "C"])
 
     resized = image.resize((image_size, image_size))
@@ -248,43 +328,70 @@ def _predict_multi_output_quality_with_keras(image: Image.Image) -> QualityInspe
     )
 
 
-def _predict_freshness_with_keras(image: Image.Image, produce_type_hint: str) -> FreshnessResult | None:
-    model_path = Path(settings.BASE_DIR) / "weights" / "fruit_fresh_rotten_model.keras"
+def _predict_classifier_with_keras(image: Image.Image, produce_type_hint: str) -> FreshnessResult | None:
+    model_path = Path(settings.BASE_DIR) / "weights" / "fruit_vegetable_classifier.h5"
     if not model_path.exists():
         return None
 
     try:
         import tensorflow as tf
+        from tensorflow.keras.applications.efficientnet import preprocess_input
     except Exception:
         return None
 
-    resized = image.resize((224, 224))
+    classifier_metadata = _load_classifier_metadata()
+    image_size = int(classifier_metadata.get("image_size", 224)) if classifier_metadata else 224
+    resized = image.resize((image_size, image_size))
     tensor = tf.keras.utils.img_to_array(resized)
-    tensor = tf.expand_dims(tensor, axis=0) / 255.0
+    tensor = tf.expand_dims(tensor, axis=0)
+    tensor = preprocess_input(tensor)
 
     model = tf.keras.models.load_model(model_path)
     predictions = model.predict(tensor, verbose=0)
-    output = predictions[0]
+    if isinstance(predictions, dict):
+        output = next(iter(predictions.values()))[0]
+    else:
+        output = predictions[0]
+
+    classifier_labels = _load_classifier_labels()
+    if classifier_labels and len(output) == len(classifier_labels):
+        best_index = max(range(len(output)), key=lambda idx: float(output[idx]))
+        produce_type, freshness_label = _parse_classifier_label(classifier_labels[best_index])
+        return FreshnessResult(
+            produce_type=produce_type or produce_type_hint,
+            freshness_label=freshness_label,
+            confidence=max(0.0, min(100.0, float(output[best_index]) * 100.0)),
+            model_name="fruit_vegetable_classifier.h5",
+        )
 
     if len(output) == 2:
-        fresh_confidence = float(output[0]) if output[0] > output[1] else float(1.0 - output[1])
-        label = "fresh" if output[0] >= output[1] else "rotten"
+        best_index = max(range(len(output)), key=lambda idx: float(output[idx]))
+        predicted_label = ("healthy", "rotten")[best_index]
         return FreshnessResult(
             produce_type=produce_type_hint,
-            freshness_label=label,
-            confidence=max(0.0, min(100.0, fresh_confidence * 100.0)),
-            model_name="fruit_fresh_rotten_model.keras",
+            freshness_label=_normalize_freshness_label(predicted_label),
+            confidence=max(0.0, min(100.0, float(output[best_index]) * 100.0)),
+            model_name="fruit_vegetable_classifier.h5",
+        )
+
+    if len(output) == len(MODEL_PRODUCE_LABELS):
+        best_index = max(range(len(output)), key=lambda idx: float(output[idx]))
+        return FreshnessResult(
+            produce_type=MODEL_PRODUCE_LABELS[best_index],
+            freshness_label="unknown",
+            confidence=max(0.0, min(100.0, float(output[best_index]) * 100.0)),
+            model_name="fruit_vegetable_classifier.h5",
         )
 
     if len(output) == len(MODEL_LABELS_12):
         best_index = max(range(len(output)), key=lambda idx: float(output[idx]))
         best_label = MODEL_LABELS_12[best_index]
-        freshness_label, produce_type = best_label.split("_", 1)
+        health_label, produce_type = best_label.split("_", 1)
         return FreshnessResult(
             produce_type=produce_type,
-            freshness_label=freshness_label,
+            freshness_label=_normalize_freshness_label(health_label),
             confidence=max(0.0, min(100.0, float(output[best_index]) * 100.0)),
-            model_name="fruit_fresh_rotten_model.keras",
+            model_name="fruit_vegetable_classifier.h5",
         )
 
     return None
@@ -310,19 +417,29 @@ def inspect_product_quality(product, image_source) -> QualityInspectionResult:
             assessed_by_model=full_quality_result.assessed_by_model,
         )
 
-    freshness = _predict_freshness_with_keras(image, produce_type_hint)
-    if freshness is None:
-        fallback_confidence = 82.0 if _score_color(subject_pixels) >= 65 else 58.0
-        fallback_label = "fresh" if fallback_confidence >= 65 else "rotten"
+    classifier_result = _predict_classifier_with_keras(image, produce_type_hint)
+    color_score = _score_color(subject_pixels)
+    if classifier_result is None:
+        freshness_confidence = 82.0 if color_score >= 65 else 58.0
         freshness = FreshnessResult(
             produce_type=produce_type_hint,
-            freshness_label=fallback_label,
-            confidence=fallback_confidence,
+            freshness_label="healthy" if freshness_confidence >= 65 else "rotten",
+            confidence=freshness_confidence,
             model_name="heuristic_quality_pipeline",
         )
+    elif classifier_result.freshness_label == "unknown":
+        freshness_confidence = 82.0 if color_score >= 65 else 58.0
+        freshness = FreshnessResult(
+            produce_type=classifier_result.produce_type or produce_type_hint,
+            freshness_label="healthy" if freshness_confidence >= 65 else "rotten",
+            confidence=freshness_confidence,
+            model_name=f"{classifier_result.model_name} + heuristic_quality_pipeline",
+        )
+    else:
+        freshness = classifier_result
 
     produce_type = freshness.produce_type or produce_type_hint or "unknown"
-    color_score = _score_color(subject_pixels)
+
     size_score = _score_size(image, subject_pixels)
     ripeness_score = _score_ripeness(produce_type, subject_pixels, freshness.confidence)
     overall_grade = _grade_from_scores(color_score, size_score, ripeness_score)
