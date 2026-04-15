@@ -1,0 +1,40 @@
+<div class="row g-4">
+    {% for product in products %}
+    <div class="col-lg-3 col-md-4 col-sm-6">
+        <div class="card h-100 card-soft fade-stagger">
+            {% if product.image %}
+                <img src="{{ product.image.url }}" class="card-img-top" alt="{{ product.name }}" style="height: 200px; object-fit: cover;">
+            {% else %}
+                <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                    <i class="fas fa-image fa-3x text-muted"></i>
+                </div>
+            {% endif %}
+            <div class="card-body d-flex flex-column">
+                <div class="d-flex justify-content-between align-items-start mb-2 gap-2">
+                    <h5 class="card-title mb-0">{{ product.name }}</h5>
+                    <span class="badge-soft">{{ product.category.name }}</span>
+                </div>
+                <p class="small text-muted mb-2">By {{ product.producer.username }}</p>
+                <p class="card-text text-muted">{{ product.description|truncatechars:100 }}</p>
+                <div class="d-flex flex-wrap gap-2 mb-2">
+                    {% if product.is_organic %}<span class="badge-soft">Organic</span>{% endif %}
+                    {% if product.allergen_info %}<span class="badge-soft">Allergen Info</span>{% endif %}
+                    <span class="badge-soft">{{ product.get_availability_display }}</span>
+                </div>
+                <div class="mt-auto d-flex justify-content-between align-items-center gap-2">
+                    <p class="h5 text-success mb-0">${{ product.price }} / {{ product.unit }}</p>
+                    <a href="{% url 'product_detail' product.id %}" class="btn btn-success">
+                        <i class="fas fa-eye me-1"></i>View
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12 text-center py-5 card card-soft">
+        <i class="fas fa-search fa-4x text-muted mb-3"></i>
+        <h4 class="text-muted">No products found</h4>
+        <p class="mb-0">Try adjusting your filter or check back later.</p>
+    </div>
+    {% endfor %}
+</div>

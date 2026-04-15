@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}My Orders - Local Food Marketplace{% endblock %}
+
+{% block content %}
+<div class="section-head">
+    <h2 class="mb-0"><i class="fas fa-receipt text-success me-2"></i>My Orders</h2>
+    <a href="{% url 'product_list' %}" class="btn btn-outline-success">
+        <i class="fas fa-shopping-bag me-1"></i> Continue Shopping
+    </a>
+</div>
+
+<div class="card card-soft p-3 mb-4">
+    <form method="get" class="row g-2">
+        <div class="col-md-4">
+            <input type="text" class="form-control" name="producer" placeholder="Filter by producer" value="{{ producer_filter }}">
+        </div>
+        <div class="col-md-3">
+            <input type="date" class="form-control" name="date_from" value="{{ date_from }}">
+        </div>
+        <div class="col-md-3">
+            <input type="date" class="form-control" name="date_to" value="{{ date_to }}">
+        </div>
+        <div class="col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-success w-100">Apply</button>
+            <a href="{% url 'order_list' %}" class="btn btn-outline-secondary">Clear</a>
+        </div>
+    </form>
+</div>
+
+<div class="card card-soft p-4 fade-stagger">
+    {% if orders %}
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th>Total</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr>
+                    <td>#{{ order.id }}</td>
+                    <td>{{ order.created_at|date:"M j, Y, g:i A" }}</td>
+                    <td>
+                        <span class="badge-soft">{{ order.status|title }}</span>
+                    </td>
+                    <td>${{ order.total }}</td>
+                    <td>
+                        <a href="{% url 'order_detail' order.id %}" class="btn btn-sm btn-outline-success me-1">
+                            View Details
+                        </a>
+                        <form method="post" action="{% url 'reorder_order' order.id %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-success">Reorder</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-4">
+        <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+        <h5 class="mb-2">No orders yet</h5>
+        <p class="text-muted mb-3">You have not placed any orders so far.</p>
+        <a href="{% url 'product_list' %}" class="btn btn-success">
+            <i class="fas fa-shopping-bag me-1"></i> Browse Products
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
