@@ -103,7 +103,31 @@
                     <td>{{ inspection.size_score }}%</td>
                     <td>{{ inspection.ripeness_score }}%</td>
                     <td><span class="badge-soft">Grade {{ inspection.overall_grade }}</span></td>
-                    <td>{{ inspection.suggested_action }}</td>
+                    <td>
+                        <div class="small mb-2">{{ inspection.suggested_action }}</div>
+                        <form method="post" action="{% url 'quality_inspection_override' inspection.id %}" class="row g-2">
+                            {% csrf_token %}
+                            <div class="col-12 col-lg-3">
+                                {{ override_form.new_grade }}
+                            </div>
+                            <div class="col-12 col-lg-3">
+                                {{ override_form.new_freshness_label }}
+                            </div>
+                            <div class="col-12 col-lg-4">
+                                {{ override_form.note }}
+                            </div>
+                            <div class="col-12 col-lg-2">
+                                <button type="submit" class="btn btn-outline-success btn-sm w-100">Override</button>
+                            </div>
+                        </form>
+                        {% if inspection.overrides.all %}
+                        <div class="small text-muted mt-2">
+                            Latest override:
+                            {{ inspection.overrides.first.new_grade }}/{{ inspection.overrides.first.new_freshness_label }}
+                            by {{ inspection.overrides.first.overridden_by.username }}
+                        </div>
+                        {% endif %}
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>

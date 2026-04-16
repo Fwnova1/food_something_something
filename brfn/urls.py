@@ -5,8 +5,6 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-
     # Home
     path("", TemplateView.as_view(
         template_name="home.html"
@@ -18,6 +16,9 @@ urlpatterns = [
 
     # API
     path("api/", include("products.api_urls")),
+
+    # Django admin (kept after frontend so /admin/ai-* routes resolve first)
+    path('admin/', admin.site.urls),
 ]
 
 if settings.DEBUG:

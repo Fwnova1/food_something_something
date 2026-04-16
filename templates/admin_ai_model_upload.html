@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Upload AI Model - Local Food Marketplace{% endblock %}
+
+{% block content %}
+<div class="section-head">
+    <div>
+        <h2 class="mb-1"><i class="fas fa-upload text-success me-2"></i>Upload AI Model</h2>
+        <p class="text-muted mb-0">Register a newly trained model artifact and optionally activate it immediately.</p>
+    </div>
+    <a href="{% url 'admin_ai_dashboard' %}" class="btn btn-outline-success">
+        <i class="fas fa-chart-line me-1"></i> Back to Dashboard
+    </a>
+</div>
+
+<div class="card card-soft p-4 mb-4">
+    <form method="post" enctype="multipart/form-data" class="row g-3">
+        {% csrf_token %}
+        <div class="col-md-6">
+            <label class="form-label" for="{{ form.task_type.id_for_label }}">Task</label>
+            {{ form.task_type }}
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="{{ form.version_name.id_for_label }}">Version Name</label>
+            {{ form.version_name }}
+        </div>
+        <div class="col-12">
+            <label class="form-label" for="{{ form.description.id_for_label }}">Description</label>
+            {{ form.description }}
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="{{ form.artifact.id_for_label }}">Model Artifact</label>
+            {{ form.artifact }}
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="{{ form.metadata_json.id_for_label }}">Metadata JSON</label>
+            {{ form.metadata_json }}
+        </div>
+        <div class="col-12">
+            <div class="form-check">
+                {{ form.activate_immediately }}
+                <label class="form-check-label" for="{{ form.activate_immediately.id_for_label }}">Activate this model after upload</label>
+            </div>
+        </div>
+        <div class="col-12">
+            <button type="submit" class="btn btn-success">
+                <i class="fas fa-upload me-1"></i> Save Model
+            </button>
+        </div>
+    </form>
+</div>
+
+<div class="card card-soft p-4">
+    <div class="section-head mb-3">
+        <h4 class="mb-0">Recent Uploaded Models</h4>
+        <span class="badge-soft">Registry</span>
+    </div>
+    {% if model_versions %}
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Task</th>
+                    <th>Version</th>
+                    <th>Active</th>
+                    <th>Uploaded By</th>
+                    <th>Created</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for model in model_versions %}
+                <tr>
+                    <td>{{ model.get_task_type_display }}</td>
+                    <td>{{ model.version_name }}</td>
+                    <td>{% if model.is_active %}<span class="badge-soft">Active</span>{% else %}-{% endif %}</td>
+                    <td>{{ model.uploaded_by.username }}</td>
+                    <td>{{ model.created_at|date:"M j, Y, g:i A" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-muted mb-0">No models uploaded yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

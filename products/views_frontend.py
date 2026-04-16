@@ -1,5 +1,6 @@
 from decimal import Decimal
 from datetime import timedelta
+import json
 
 from django import forms
 from django.contrib import messages
@@ -7,14 +8,24 @@ from django.contrib.auth import get_user_model, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.text import slugify
 from django.utils import timezone
 
 from orders.models import Cart, CartItem, Order, OrderItem, RecurringOrder, RecurringOrderItem
 from .forecasting import build_demand_forecast_for_scope
-from .models import Category, Product, ProductReview, ContentPost, QualityInspection
+from .models import (
+    AIModelVersion,
+    Category,
+    ContentPost,
+    ForecastSnapshot,
+    Product,
+    ProductReview,
+    QualityInspection,
+    QualityInspectionOverride,
+    RecommendationEvent,
+)
 from .quality_inspection import inspect_product_quality
 from .recommendation import build_customer_recommendations, build_quick_reorder_suggestions
 
@@ -233,6 +244,45 @@ class QualityInspectionForm(forms.Form):
         self.fields["inspection_image"].widget.attrs.update({"class": "form-control"})
 
 
+class QualityOverrideForm(forms.Form):
+    new_grade = forms.ChoiceField(choices=QualityInspection.GRADE_CHOICES)
+    new_freshness_label = forms.ChoiceField(choices=QualityInspection.FRESHNESS_CHOICES)
+    note = forms.CharField(widget=forms.Textarea(attrs={"rows": 3}), required=False)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["new_grade"].widget.attrs.update({"class": "form-select"})
+        self.fields["new_freshness_label"].widget.attrs.update({"class": "form-select"})
+        self.fields["note"].widget.attrs.update({"class": "form-control", "placeholder": "Why was the model corrected?"})
+
+
+class AIModelUploadForm(forms.ModelForm):
+    activate_immediately = forms.BooleanField(required=False, initial=True)
+
+    class Meta:
+        model = AIModelVersion
+        fields = ("task_type", "version_name", "description", "artifact", "metadata_json")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["task_type"].widget.attrs.update({"class": "form-select"})
+        self.fields["version_name"].widget.attrs.update({"class": "form-control", "placeholder": "e.g. quality-v2"})
+        self.fields["description"].widget.attrs.update({"class": "form-control", "rows": 4, "placeholder": "Training data, notes, validation summary"})
+        self.fields["artifact"].widget.attrs.update({"class": "form-control"})
+        self.fields["metadata_json"].widget.attrs.update({"class": "form-control", "rows": 6, "placeholder": '{"image_size": 224, "grade_labels": ["A","B","C"]}'})
+        self.fields["activate_immediately"].widget.attrs.update({"class": "form-check-input"})
+
+    def clean_metadata_json(self):
+        value = (self.cleaned_data.get("metadata_json") or "").strip()
+        if not value:
+            return ""
+        try:
+            json.loads(value)
+        except json.JSONDecodeError as exc:
+            raise forms.ValidationError(f"Invalid JSON metadata: {exc}")
+        return value
+
+
 def build_tracking_steps(status):
     if status == "cancelled":
         return [
@@ -251,6 +301,49 @@ def build_tracking_steps(status):
             }
         )
     return steps
+
+
+def _log_recommendation_impressions(user, items, source_page: str):
+    if not user.is_authenticated or user.role != "customer" or not items:
+        return
+
+    RecommendationEvent.objects.bulk_create(
+        [
+            RecommendationEvent(
+                user=user,
+                product=item.product,
+                producer=item.product.producer,
+                event_type="impression",
+                source_page=source_page,
+                rank=index,
+                score=getattr(item, "score", 0) or 0,
+                reason=getattr(item, "reason", ""),
+            )
+            for index, item in enumerate(items, start=1)
+        ]
+    )
+
+
+def _log_forecast_snapshots(user, forecasts):
+    if not user.is_authenticated or user.role not in {"producer", "admin"} or not forecasts:
+        return
+
+    ForecastSnapshot.objects.bulk_create(
+        [
+            ForecastSnapshot(
+                viewer=user,
+                product=item.product,
+                producer=item.product.producer,
+                weekly_demand=",".join(str(value) for value in item.weekly_demand),
+                forecast_next_week=item.forecast_next_week,
+                recommended_stock=item.recommended_stock,
+                trend=item.trend,
+                confidence=item.confidence,
+                explanation=item.explanation,
+            )
+            for item in forecasts
+        ]
+    )
 
 
 def _available_products_queryset():
@@ -290,6 +383,7 @@ def product_list(request):
     if request.user.is_authenticated and request.user.role == "customer":
         recommendations = build_customer_recommendations(request.user, limit=4)
         quick_reorders = build_quick_reorder_suggestions(request.user, limit=3)
+        _log_recommendation_impressions(request.user, recommendations, "product_list")
 
     context = {
         "products": products,
@@ -364,9 +458,11 @@ def ai_insights_view(request):
     if request.user.role == "customer":
         recommendations = build_customer_recommendations(request.user, limit=6)
         quick_reorders = build_quick_reorder_suggestions(request.user, limit=4)
+        _log_recommendation_impressions(request.user, recommendations, "ai_insights")
 
     if request.user.role in {"producer", "admin"}:
         forecasts = build_demand_forecast_for_scope(request.user, limit=8)
+        _log_forecast_snapshots(request.user, forecasts)
 
     return render(
         request,
@@ -377,6 +473,116 @@ def ai_insights_view(request):
             "forecasts": forecasts,
         },
     )
+
+
+@login_required
+def open_recommended_product(request, pk):
+    source = request.GET.get("source") or "ai_insights"
+    valid_sources = {"product_list", "ai_insights", "quick_reorder"}
+    if source not in valid_sources:
+        source = "ai_insights"
+
+    product = get_object_or_404(Product.objects.select_related("producer"), id=pk)
+    if request.user.role == "customer":
+        try:
+            rank = max(1, int(request.GET.get("rank", "1") or 1))
+        except (TypeError, ValueError):
+            rank = 1
+        try:
+            score = Decimal(str(request.GET.get("score", "0") or "0"))
+        except Exception:
+            score = Decimal("0")
+
+        RecommendationEvent.objects.create(
+            user=request.user,
+            product=product,
+            producer=product.producer,
+            event_type="click",
+            source_page=source,
+            rank=rank,
+            score=score,
+            reason=(request.GET.get("reason") or "")[:255],
+        )
+
+    return redirect("product_detail", pk=product.id)
+
+
+@login_required
+def admin_ai_dashboard_view(request):
+    if request.user.role != "admin":
+        messages.error(request, "Only admin accounts can access the AI dashboard.")
+        return redirect("profile")
+
+    model_versions = AIModelVersion.objects.select_related("uploaded_by").order_by("-created_at")
+    active_models = model_versions.filter(is_active=True)
+    recommendation_event_count = RecommendationEvent.objects.filter(event_type="impression").count()
+    recommendation_click_count = RecommendationEvent.objects.filter(event_type="click").count()
+    quality_override_count = QualityInspectionOverride.objects.count()
+    inspection_count = QualityInspection.objects.count()
+    forecast_snapshot_count = ForecastSnapshot.objects.count()
+
+    click_through_rate = 0.0
+    if recommendation_event_count:
+        click_through_rate = round((recommendation_click_count / recommendation_event_count) * 100.0, 2)
+
+    override_rate = 0.0
+    if inspection_count:
+        override_rate = round((quality_override_count / inspection_count) * 100.0, 2)
+
+    producer_exposure = (
+        RecommendationEvent.objects.filter(event_type="impression")
+        .values("producer__username")
+        .annotate(impressions=Count("id"))
+        .order_by("-impressions")[:10]
+    )
+
+    recent_overrides = QualityInspectionOverride.objects.select_related("inspection__product", "overridden_by")[:10]
+    recent_forecasts = ForecastSnapshot.objects.select_related("product", "producer")[:10]
+
+    return render(
+        request,
+        "admin_ai_dashboard.html",
+        {
+            "model_versions": model_versions[:15],
+            "active_models": active_models,
+            "recommendation_event_count": recommendation_event_count,
+            "recommendation_click_count": recommendation_click_count,
+            "forecast_snapshot_count": forecast_snapshot_count,
+            "inspection_count": inspection_count,
+            "quality_override_count": quality_override_count,
+            "click_through_rate": click_through_rate,
+            "override_rate": override_rate,
+            "producer_exposure": producer_exposure,
+            "recent_overrides": recent_overrides,
+            "recent_forecasts": recent_forecasts,
+        },
+    )
+
+
+@login_required
+def admin_ai_model_upload_view(request):
+    if request.user.role != "admin":
+        messages.error(request, "Only admin accounts can upload AI models.")
+        return redirect("profile")
+
+    if request.method == "POST":
+        form = AIModelUploadForm(request.POST, request.FILES)
+        if form.is_valid():
+            model_version = form.save(commit=False)
+            model_version.uploaded_by = request.user
+            activate_immediately = form.cleaned_data.get("activate_immediately")
+            if activate_immediately:
+                AIModelVersion.objects.filter(task_type=model_version.task_type, is_active=True).update(is_active=False)
+                model_version.is_active = True
+                model_version.activated_at = timezone.now()
+            model_version.save()
+            messages.success(request, f"Model '{model_version.version_name}' uploaded successfully.")
+            return redirect("admin_ai_dashboard")
+    else:
+        form = AIModelUploadForm()
+
+    model_versions = AIModelVersion.objects.select_related("uploaded_by").order_by("-created_at")[:15]
+    return render(request, "admin_ai_model_upload.html", {"form": form, "model_versions": model_versions})
 
 
 def logout_view(request):
@@ -605,7 +811,7 @@ def producer_quality_inspection_view(request):
     else:
         form = QualityInspectionForm(user=request.user)
 
-    inspections = QualityInspection.objects.select_related("product", "producer")
+    inspections = QualityInspection.objects.select_related("product", "producer").prefetch_related("overrides__overridden_by")
     if request.user.role == "producer":
         inspections = inspections.filter(producer=request.user)
     inspections = inspections.order_by("-created_at")[:12]
@@ -615,10 +821,48 @@ def producer_quality_inspection_view(request):
         "producer_quality_inspection.html",
         {
             "form": form,
+            "override_form": QualityOverrideForm(),
             "latest_result": latest_result,
             "inspections": inspections,
         },
     )
+
+
+@login_required
+def quality_inspection_override_view(request, inspection_id):
+    inspection = get_object_or_404(QualityInspection.objects.select_related("product", "producer"), id=inspection_id)
+    if request.user.role not in {"producer", "admin"}:
+        messages.error(request, "Only producer or admin accounts can override AI quality results.")
+        return redirect("profile")
+    if request.user.role == "producer" and inspection.producer_id != request.user.id:
+        messages.error(request, "You can only override inspections for your own products.")
+        return redirect("producer_quality_inspection")
+    if request.method != "POST":
+        return redirect("producer_quality_inspection")
+
+    form = QualityOverrideForm(request.POST)
+    if not form.is_valid():
+        messages.error(request, "Invalid override submission.")
+        return redirect("producer_quality_inspection")
+
+    QualityInspectionOverride.objects.create(
+        inspection=inspection,
+        overridden_by=request.user,
+        previous_grade=inspection.overall_grade,
+        new_grade=form.cleaned_data["new_grade"],
+        previous_freshness_label=inspection.freshness_label,
+        new_freshness_label=form.cleaned_data["new_freshness_label"],
+        note=form.cleaned_data.get("note", ""),
+    )
+    inspection.overall_grade = form.cleaned_data["new_grade"]
+    inspection.freshness_label = form.cleaned_data["new_freshness_label"]
+    inspection.explanation = (
+        f"{inspection.explanation} Override applied by {request.user.username}: "
+        f"grade {form.cleaned_data['new_grade']}, freshness {form.cleaned_data['new_freshness_label']}."
+    ).strip()
+    inspection.save(update_fields=["overall_grade", "freshness_label", "explanation"])
+    messages.success(request, "Quality inspection override saved.")
+    return redirect("producer_quality_inspection")
 
 
 @login_required

@@ -145,3 +145,84 @@ class QualityInspection(models.Model):
 
     def __str__(self):
         return f"{self.product.name} - Grade {self.overall_grade} ({self.created_at:%Y-%m-%d %H:%M})"
+
+
+class AIModelVersion(models.Model):
+    TASK_CHOICES = (
+        ("recommendation", "Recommendation"),
+        ("forecasting", "Forecasting"),
+        ("quality_freshness", "Quality Freshness"),
+        ("quality_multi_output", "Quality Multi Output"),
+    )
+
+    task_type = models.CharField(max_length=40, choices=TASK_CHOICES)
+    version_name = models.CharField(max_length=120)
+    description = models.TextField(blank=True)
+    artifact = models.FileField(upload_to="ai_models/")
+    metadata_json = models.TextField(blank=True)
+    is_active = models.BooleanField(default=False)
+    uploaded_by = models.ForeignKey("users.User", on_delete=models.CASCADE, related_name="uploaded_ai_models")
+    activated_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.get_task_type_display()} - {self.version_name}"
+
+
+class RecommendationEvent(models.Model):
+    EVENT_CHOICES = (
+        ("impression", "Impression"),
+        ("click", "Click"),
+    )
+
+    SOURCE_CHOICES = (
+        ("product_list", "Product List"),
+        ("ai_insights", "AI Insights"),
+        ("quick_reorder", "Quick Reorder"),
+    )
+
+    user = models.ForeignKey("users.User", on_delete=models.CASCADE, related_name="recommendation_events")
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="recommendation_events")
+    producer = models.ForeignKey("users.User", on_delete=models.CASCADE, related_name="producer_recommendation_events")
+    event_type = models.CharField(max_length=20, choices=EVENT_CHOICES)
+    source_page = models.CharField(max_length=30, choices=SOURCE_CHOICES)
+    rank = models.PositiveIntegerField(default=1)
+    score = models.DecimalField(max_digits=8, decimal_places=4, default=0)
+    reason = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+
+class ForecastSnapshot(models.Model):
+    viewer = models.ForeignKey("users.User", on_delete=models.CASCADE, related_name="forecast_snapshots")
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="forecast_snapshots")
+    producer = models.ForeignKey("users.User", on_delete=models.CASCADE, related_name="producer_forecast_snapshots")
+    weekly_demand = models.CharField(max_length=255)
+    forecast_next_week = models.PositiveIntegerField()
+    recommended_stock = models.PositiveIntegerField()
+    trend = models.CharField(max_length=20)
+    confidence = models.CharField(max_length=20)
+    explanation = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+
+class QualityInspectionOverride(models.Model):
+    inspection = models.ForeignKey(QualityInspection, on_delete=models.CASCADE, related_name="overrides")
+    overridden_by = models.ForeignKey("users.User", on_delete=models.CASCADE, related_name="quality_overrides")
+    previous_grade = models.CharField(max_length=1)
+    new_grade = models.CharField(max_length=1, choices=QualityInspection.GRADE_CHOICES)
+    previous_freshness_label = models.CharField(max_length=20)
+    new_freshness_label = models.CharField(max_length=20, choices=QualityInspection.FRESHNESS_CHOICES)
+    note = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]

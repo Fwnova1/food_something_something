@@ -30,6 +30,33 @@ def _normalize(value: float, max_value: float) -> float:
     return float(value) / float(max_value)
 
 
+def _diversify_recommendations(candidates: list[RecommendationItem], limit: int) -> list[RecommendationItem]:
+    """
+    Basic fairness-aware reranking:
+    avoid letting one producer dominate the whole recommendation block.
+    """
+    diversified: list[RecommendationItem] = []
+    producer_counts: dict[int, int] = {}
+    remaining = list(candidates)
+
+    while remaining and len(diversified) < limit:
+        chosen_index = None
+        for index, item in enumerate(remaining):
+            producer_id = item.product.producer_id
+            if producer_counts.get(producer_id, 0) < 2:
+                chosen_index = index
+                break
+
+        if chosen_index is None:
+            chosen_index = 0
+
+        chosen = remaining.pop(chosen_index)
+        producer_counts[chosen.product.producer_id] = producer_counts.get(chosen.product.producer_id, 0) + 1
+        diversified.append(chosen)
+
+    return diversified
+
+
 def build_customer_recommendations(user, limit: int = 8) -> list[RecommendationItem]:
     """
     Hybrid recommendation:
@@ -103,22 +130,22 @@ def build_customer_recommendations(user, limit: int = 8) -> list[RecommendationI
     if not scores:
         return []
 
-    ranked_product_ids = [pid for pid, _ in sorted(scores.items(), key=lambda kv: kv[1], reverse=True)[:limit]]
-    products_by_id = Product.objects.in_bulk(ranked_product_ids)
+    ranked_product_ids = [pid for pid, _ in sorted(scores.items(), key=lambda kv: kv[1], reverse=True)[: (limit * 3)]]
+    products_by_id = Product.objects.select_related("producer").in_bulk(ranked_product_ids)
 
-    recommendations: list[RecommendationItem] = []
+    candidates: list[RecommendationItem] = []
     for pid in ranked_product_ids:
         product = products_by_id.get(pid)
         if not product:
             continue
-        recommendations.append(
+        candidates.append(
             RecommendationItem(
                 product=product,
                 score=scores[pid],
                 reason=reasons.get(pid, "Recommended for you."),
             )
         )
-    return recommendations
+    return _diversify_recommendations(candidates, limit)
 
 
 def build_quick_reorder_suggestions(user, limit: int = 4) -> list[QuickReorderItem]:

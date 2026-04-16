@@ -323,6 +323,18 @@
                         </ul>
                     </li>
                     {% endif %}
+                    {% if user.is_authenticated and user.role == "admin" %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Admin AI
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'admin_ai_dashboard' %}"><i class="fas fa-chart-line me-2"></i>AI Dashboard</a></li>
+                            <li><a class="dropdown-item" href="{% url 'admin_ai_model_upload' %}"><i class="fas fa-upload me-2"></i>Upload Model</a></li>
+                            <li><a class="dropdown-item" href="{% url 'producer_quality_inspection' %}"><i class="fas fa-microscope me-2"></i>Quality Inspection</a></li>
+                        </ul>
+                    </li>
+                    {% endif %}
                 </ul>
                 <ul class="navbar-nav">
                     {% if user.is_authenticated %}
@@ -340,6 +352,10 @@
                                 <li><a class="dropdown-item" href="{% url 'order_list' %}"><i class="fas fa-receipt me-2"></i>Orders</a></li>
                                 <li><a class="dropdown-item" href="{% url 'recurring_order_list' %}"><i class="fas fa-repeat me-2"></i>Recurring</a></li>
                                 <li><a class="dropdown-item" href="{% url 'ai_insights' %}"><i class="fas fa-brain me-2"></i>AI Insights</a></li>
+                                {% if user.role == "admin" %}
+                                <li><a class="dropdown-item" href="{% url 'admin_ai_dashboard' %}"><i class="fas fa-chart-line me-2"></i>AI Dashboard</a></li>
+                                <li><a class="dropdown-item" href="{% url 'admin_ai_model_upload' %}"><i class="fas fa-upload me-2"></i>Upload Model</a></li>
+                                {% endif %}
                                 <li><a class="dropdown-item" href="{% url 'content_list' %}"><i class="fas fa-book-open me-2"></i>Recipes & Stories</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>

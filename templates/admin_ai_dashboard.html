@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block title %}AI Dashboard - Local Food Marketplace{% endblock %}
+
+{% block content %}
+<div class="section-head">
+    <div>
+        <h2 class="mb-1"><i class="fas fa-chart-line text-success me-2"></i>Admin AI Dashboard</h2>
+        <p class="text-muted mb-0">Monitor active models, usage signals, recommendation fairness, and override activity.</p>
+    </div>
+    <a href="{% url 'admin_ai_model_upload' %}" class="btn btn-success">
+        <i class="fas fa-upload me-1"></i> Upload Model
+    </a>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card p-3 h-100">
+            <div class="small text-muted mb-1">Recommendation Events</div>
+            <div class="h3 mb-0 text-success">{{ recommendation_event_count }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card p-3 h-100">
+            <div class="small text-muted mb-1">Recommendation CTR</div>
+            <div class="h3 mb-0 text-success">{{ click_through_rate }}%</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card p-3 h-100">
+            <div class="small text-muted mb-1">Forecast Snapshots</div>
+            <div class="h3 mb-0 text-success">{{ forecast_snapshot_count }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card p-3 h-100">
+            <div class="small text-muted mb-1">Quality Override Rate</div>
+            <div class="h3 mb-0 text-success">{{ override_rate }}%</div>
+        </div>
+    </div>
+</div>
+
+<div class="card card-soft p-4 mb-4">
+    <div class="section-head mb-3">
+        <h4 class="mb-0">Active Models</h4>
+        <span class="badge-soft">{{ active_models|length }} active</span>
+    </div>
+    {% if active_models %}
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Task</th>
+                    <th>Version</th>
+                    <th>Uploaded By</th>
+                    <th>Activated</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for model in active_models %}
+                <tr>
+                    <td>{{ model.get_task_type_display }}</td>
+                    <td>{{ model.version_name }}</td>
+                    <td>{{ model.uploaded_by.username }}</td>
+                    <td>{{ model.activated_at|date:"M j, Y, g:i A"|default:"-" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-muted mb-0">No active uploaded models yet.</p>
+    {% endif %}
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="card card-soft p-4 h-100">
+            <div class="section-head mb-3">
+                <h4 class="mb-0">Producer Exposure</h4>
+                <span class="badge-soft">Fairness proxy</span>
+            </div>
+            {% if producer_exposure %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Producer</th>
+                            <th>Recommendation Impressions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in producer_exposure %}
+                        <tr>
+                            <td>{{ row.producer__username }}</td>
+                            <td>{{ row.impressions }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted mb-0">No recommendation exposure data yet.</p>
+            {% endif %}
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card card-soft p-4 h-100">
+            <div class="section-head mb-3">
+                <h4 class="mb-0">Recent Quality Overrides</h4>
+                <span class="badge-soft">{{ quality_override_count }} total</span>
+            </div>
+            {% if recent_overrides %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Change</th>
+                            <th>User</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for override in recent_overrides %}
+                        <tr>
+                            <td>{{ override.inspection.product.name }}</td>
+                            <td>{{ override.previous_grade }}/{{ override.previous_freshness_label }} → {{ override.new_grade }}/{{ override.new_freshness_label }}</td>
+                            <td>{{ override.overridden_by.username }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted mb-0">No overrides have been submitted yet.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="card card-soft p-4 mt-4">
+    <div class="section-head mb-3">
+        <h4 class="mb-0">Recent Forecast Snapshots</h4>
+        <span class="badge-soft">Monitoring trail</span>
+    </div>
+    {% if recent_forecasts %}
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Producer</th>
+                    <th>Weekly Demand</th>
+                    <th>Next Week</th>
+                    <th>Confidence</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for snapshot in recent_forecasts %}
+                <tr>
+                    <td>{{ snapshot.product.name }}</td>
+                    <td>{{ snapshot.producer.username }}</td>
+                    <td>{{ snapshot.weekly_demand }}</td>
+                    <td>{{ snapshot.forecast_next_week }}</td>
+                    <td>{{ snapshot.confidence|title }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-muted mb-0">No forecast snapshots recorded yet.</p>
+    {% endif %}
+</div>
+
+<div class="card p-4 mt-4">
+    <h5 class="mb-3">Monitoring strategy implemented</h5>
+    <p class="mb-1">The dashboard tracks recommendation usage, producer exposure, forecast snapshots, and quality overrides so model behaviour can be reviewed over time.</p>
+    <p class="mb-0">Overrides are treated as corrective feedback and can be used later for retraining or threshold tuning.</p>
+</div>
+{% endblock %}

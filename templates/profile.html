@@ -47,6 +47,14 @@
                             <a href="{% url 'ai_insights' %}" class="btn btn-outline-success">
                                 <i class="fas fa-brain me-1"></i> AI Insights
                             </a>
+                            {% if user.role == 'admin' %}
+                            <a href="{% url 'admin_ai_dashboard' %}" class="btn btn-outline-success">
+                                <i class="fas fa-chart-line me-1"></i> AI Dashboard
+                            </a>
+                            <a href="{% url 'admin_ai_model_upload' %}" class="btn btn-outline-success">
+                                <i class="fas fa-upload me-1"></i> Upload AI Model
+                            </a>
+                            {% endif %}
                             {% if user.role == 'producer' %}
                             <a href="{% url 'producer_manage_products' %}" class="btn btn-outline-success">
                                 <i class="fas fa-box-open me-1"></i> Manage Products

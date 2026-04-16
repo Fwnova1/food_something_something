@@ -17,7 +17,7 @@
                 <p class="text-muted small mb-2">Producer: {{ item.product.producer.username }}</p>
                 <p class="small mb-2">{{ item.reason }}</p>
                 <p class="mb-3"><strong>Suggested quantity:</strong> {{ item.suggested_quantity }}</p>
-                <a href="{% url 'product_detail' item.product.id %}" class="btn btn-outline-success btn-sm">View Product</a>
+                <a href="{% url 'open_recommended_product' item.product.id %}?source=quick_reorder&rank={{ forloop.counter }}" class="btn btn-outline-success btn-sm">View Product</a>
             </div>
         </div>
         {% endfor %}
@@ -42,7 +42,7 @@
                 <p class="text-muted small mb-2">By {{ item.product.producer.username }}</p>
                 <p class="small mb-2">{{ item.reason }}</p>
                 <p class="text-success fw-bold mb-3">${{ item.product.price }} / {{ item.product.unit }}</p>
-                <a href="{% url 'product_detail' item.product.id %}" class="btn btn-success btn-sm">View Product</a>
+                <a href="{% url 'open_recommended_product' item.product.id %}?source=product_list&rank={{ forloop.counter }}&score={{ item.score|floatformat:4|urlencode }}&reason={{ item.reason|urlencode }}" class="btn btn-success btn-sm">View Product</a>
             </div>
         </div>
         {% endfor %}

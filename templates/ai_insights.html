@@ -30,7 +30,7 @@
                     </div>
                     <div class="text-end">
                         <div class="fw-bold text-success">{{ item.suggested_quantity }} x</div>
-                        <a href="{% url 'product_detail' item.product.id %}" class="btn btn-sm btn-outline-success mt-2">View Product</a>
+                        <a href="{% url 'open_recommended_product' item.product.id %}?source=quick_reorder&rank={{ forloop.counter }}" class="btn btn-sm btn-outline-success mt-2">View Product</a>
                     </div>
                 </div>
             </div>
@@ -62,7 +62,7 @@
                 <p class="small mb-2">{{ item.reason }}</p>
                 <p class="text-success fw-bold mb-0">${{ item.product.price }} / {{ item.product.unit }}</p>
                 <div class="mt-3">
-                    <a href="{% url 'product_detail' item.product.id %}" class="btn btn-success btn-sm">Open Product</a>
+                    <a href="{% url 'open_recommended_product' item.product.id %}?source=ai_insights&rank={{ forloop.counter }}&score={{ item.score|floatformat:4|urlencode }}&reason={{ item.reason|urlencode }}" class="btn btn-success btn-sm">Open Product</a>
                 </div>
             </div>
         </div>
@@ -97,6 +97,7 @@
                     <th>Product</th>
                     <th>Producer</th>
                     <th>Weekly Demand</th>
+                    <th>Forecast Chart</th>
                     <th>Next Week</th>
                     <th>Recommended Stock</th>
                     <th>Trend</th>
@@ -110,6 +111,17 @@
                     <td>{{ item.product.name }}</td>
                     <td>{{ item.product.producer.username }}</td>
                     <td>{{ item.weekly_demand|join:", " }}</td>
+                    <td>
+                        <div class="d-flex align-items-end gap-1" style="height: 56px;">
+                            {% for value in item.weekly_demand %}
+                            <div
+                                class="bg-success rounded-top"
+                                title="Week {{ forloop.counter }}: {{ value }}"
+                                style="width: 12px; height: {% widthratio value 1 12 %}px; min-height: 4px; opacity: 0.8;"
+                            ></div>
+                            {% endfor %}
+                        </div>
+                    </td>
                     <td class="fw-bold text-success">{{ item.forecast_next_week }}</td>
                     <td>{{ item.recommended_stock }}</td>
                     <td><span class="badge-soft">{{ item.trend|title }}</span></td>
@@ -129,6 +141,7 @@
 <div class="card p-4 mt-4">
     <h5 class="mb-3">Why the model made these outputs</h5>
     <p class="mb-1">Recommendations use purchase frequency, quantity, recent buying behaviour, co-purchase patterns, and network-wide popularity.</p>
-    <p class="mb-0">Forecasts use recent weekly order quantities with higher weight on newer weeks, then add a 20% safety buffer for stock planning.</p>
+    <p class="mb-1">Forecasts use recent weekly order quantities with higher weight on newer weeks, then add a 20% safety buffer for stock planning.</p>
+    <p class="mb-0">Recommendation ranking is lightly diversified across producers to reduce the risk of over-favouring a single supplier.</p>
 </div>
 {% endblock %}

@@ -201,7 +201,7 @@ def _build_explanation(color_score: int, size_score: int, ripeness_score: int, f
 def _normalize_freshness_label(label: str) -> str:
     normalized = (label or "").strip().lower()
     if normalized in {"healthy", "fresh"}:
-        return "healthy"
+        return "fresh"
     if normalized == "rotten":
         return "rotten"
     return "unknown"
@@ -258,78 +258,21 @@ def _parse_classifier_label(label: str) -> tuple[str, str]:
     return _normalize_produce_token(raw_label), "unknown"
 
 
-def _quality_model_paths() -> tuple[Path, Path]:
-    weights_dir = Path(settings.BASE_DIR) / "weights"
-    return (
-        weights_dir / "quality_multi_output_model.keras",
-        weights_dir / "quality_multi_output_metadata.json",
-    )
-
-
-def _predict_multi_output_quality_with_keras(image: Image.Image) -> QualityInspectionResult | None:
-    model_path, metadata_path = _quality_model_paths()
-    if not model_path.exists() or not metadata_path.exists():
-        return None
-
-    try:
-        import tensorflow as tf
-    except Exception:
-        return None
-
-    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-    image_size = int(metadata.get("image_size", 224))
-    produce_labels = metadata.get("produce_labels", [])
-    freshness_labels = metadata.get("freshness_labels", ["healthy", "rotten"])
-    grade_labels = metadata.get("grade_labels", ["A", "B", "C"])
-
-    resized = image.resize((image_size, image_size))
-    tensor = tf.keras.utils.img_to_array(resized)
-    tensor = tf.expand_dims(tensor, axis=0) / 255.0
-
-    model = tf.keras.models.load_model(model_path)
-    predictions = model.predict(tensor, verbose=0)
-
-    if not isinstance(predictions, dict):
-        return None
-
-    produce_logits = predictions.get("produce_type")
-    freshness_logits = predictions.get("freshness")
-    color_pred = predictions.get("color_score")
-    size_pred = predictions.get("size_score")
-    ripeness_pred = predictions.get("ripeness_score")
-    grade_logits = predictions.get("grade")
-    if any(value is None for value in [produce_logits, freshness_logits, color_pred, size_pred, ripeness_pred, grade_logits]):
-        return None
-
-    produce_index = int(tf.argmax(produce_logits[0]).numpy())
-    freshness_index = int(tf.argmax(freshness_logits[0]).numpy())
-    grade_index = int(tf.argmax(grade_logits[0]).numpy())
-    produce_type = produce_labels[produce_index] if produce_index < len(produce_labels) else "unknown"
-    freshness_label = freshness_labels[freshness_index] if freshness_index < len(freshness_labels) else "unknown"
-    freshness_confidence = float(tf.reduce_max(freshness_logits[0]).numpy()) * 100.0
-    color_score = _clamp(float(color_pred[0][0]) * 100.0)
-    size_score = _clamp(float(size_pred[0][0]) * 100.0)
-    ripeness_score = _clamp(float(ripeness_pred[0][0]) * 100.0)
-    overall_grade = grade_labels[grade_index] if grade_index < len(grade_labels) else _grade_from_scores(color_score, size_score, ripeness_score)
-    suggested_action = _suggested_action(overall_grade, 0)
-    explanation = _build_explanation(color_score, size_score, ripeness_score, freshness_label)
-
-    return QualityInspectionResult(
-        produce_type=produce_type,
-        freshness_label=freshness_label,
-        freshness_confidence=round(freshness_confidence, 2),
-        color_score=color_score,
-        size_score=size_score,
-        ripeness_score=ripeness_score,
-        overall_grade=overall_grade,
-        suggested_action=suggested_action,
-        explanation=explanation,
-        assessed_by_model=model_path.name,
-    )
-
-
 def _predict_classifier_with_keras(image: Image.Image, produce_type_hint: str) -> FreshnessResult | None:
     model_path = Path(settings.BASE_DIR) / "weights" / "fruit_vegetable_classifier.h5"
+    try:
+        from .models import AIModelVersion
+
+        active_model = (
+            AIModelVersion.objects.filter(task_type="quality_freshness", is_active=True)
+            .order_by("-activated_at", "-created_at")
+            .first()
+        )
+        if active_model and active_model.artifact:
+            model_path = Path(active_model.artifact.path)
+    except Exception:
+        pass
+
     if not model_path.exists():
         return None
 
@@ -366,7 +309,7 @@ def _predict_classifier_with_keras(image: Image.Image, produce_type_hint: str) -
 
     if len(output) == 2:
         best_index = max(range(len(output)), key=lambda idx: float(output[idx]))
-        predicted_label = ("healthy", "rotten")[best_index]
+        predicted_label = ("fresh", "rotten")[best_index]
         return FreshnessResult(
             produce_type=produce_type_hint,
             freshness_label=_normalize_freshness_label(predicted_label),
@@ -402,28 +345,13 @@ def inspect_product_quality(product, image_source) -> QualityInspectionResult:
     image = _open_image(image_source)
     subject_pixels = _extract_subject_pixels(image)
 
-    full_quality_result = _predict_multi_output_quality_with_keras(image)
-    if full_quality_result is not None:
-        return QualityInspectionResult(
-            produce_type=full_quality_result.produce_type,
-            freshness_label=full_quality_result.freshness_label,
-            freshness_confidence=full_quality_result.freshness_confidence,
-            color_score=full_quality_result.color_score,
-            size_score=full_quality_result.size_score,
-            ripeness_score=full_quality_result.ripeness_score,
-            overall_grade=full_quality_result.overall_grade,
-            suggested_action=_suggested_action(full_quality_result.overall_grade, product.stock_quantity),
-            explanation=full_quality_result.explanation,
-            assessed_by_model=full_quality_result.assessed_by_model,
-        )
-
     classifier_result = _predict_classifier_with_keras(image, produce_type_hint)
     color_score = _score_color(subject_pixels)
     if classifier_result is None:
         freshness_confidence = 82.0 if color_score >= 65 else 58.0
         freshness = FreshnessResult(
             produce_type=produce_type_hint,
-            freshness_label="healthy" if freshness_confidence >= 65 else "rotten",
+            freshness_label="fresh" if freshness_confidence >= 65 else "rotten",
             confidence=freshness_confidence,
             model_name="heuristic_quality_pipeline",
         )
@@ -431,7 +359,7 @@ def inspect_product_quality(product, image_source) -> QualityInspectionResult:
         freshness_confidence = 82.0 if color_score >= 65 else 58.0
         freshness = FreshnessResult(
             produce_type=classifier_result.produce_type or produce_type_hint,
-            freshness_label="healthy" if freshness_confidence >= 65 else "rotten",
+            freshness_label="fresh" if freshness_confidence >= 65 else "rotten",
             confidence=freshness_confidence,
             model_name=f"{classifier_result.model_name} + heuristic_quality_pipeline",
         )
