@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}AI Insights - Local Food Marketplace{% endblock %}
+
+{% block content %}
+<div class="section-head">
+    <div>
+        <h2 class="mb-1"><i class="fas fa-brain text-success me-2"></i>AI Insights</h2>
+        <p class="text-muted mb-0">Transparent recommendation and demand forecasting features for the Bristol marketplace.</p>
+    </div>
+    <span class="badge-soft">Explainable AI enabled</span>
+</div>
+
+{% if user.role == "customer" %}
+<div class="card card-soft p-4 mb-4 fade-stagger">
+    <div class="section-head mb-3">
+        <h4 class="mb-0">Quick Reorder</h4>
+        <span class="badge-soft">Based on your order history</span>
+    </div>
+    {% if quick_reorders %}
+    <div class="row g-3">
+        {% for item in quick_reorders %}
+        <div class="col-md-6">
+            <div class="card h-100 p-3">
+                <div class="d-flex justify-content-between gap-3">
+                    <div>
+                        <h5 class="mb-1">{{ item.product.name }}</h5>
+                        <p class="text-muted mb-1">Producer: {{ item.product.producer.username }}</p>
+                        <p class="mb-0 small">{{ item.reason }}</p>
+                    </div>
+                    <div class="text-end">
+                        <div class="fw-bold text-success">{{ item.suggested_quantity }} x</div>
+                        <a href="{% url 'product_detail' item.product.id %}" class="btn btn-sm btn-outline-success mt-2">View Product</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-muted mb-0">No reorder history yet. Place a few orders and the system will start suggesting repeat purchases.</p>
+    {% endif %}
+</div>
+
+<div class="card card-soft p-4 fade-stagger">
+    <div class="section-head mb-3">
+        <h4 class="mb-0">Recommended For You</h4>
+        <span class="badge-soft">History + co-purchase + trending</span>
+    </div>
+    {% if recommendations %}
+    <div class="row g-3">
+        {% for item in recommendations %}
+        <div class="col-lg-4 col-md-6">
+            <div class="card h-100 p-3">
+                <div class="d-flex justify-content-between align-items-start gap-2">
+                    <div>
+                        <h5 class="mb-1">{{ item.product.name }}</h5>
+                        <p class="text-muted mb-2">By {{ item.product.producer.username }}</p>
+                    </div>
+                    <span class="badge-soft">{{ item.score|floatformat:2 }}</span>
+                </div>
+                <p class="small mb-2">{{ item.reason }}</p>
+                <p class="text-success fw-bold mb-0">${{ item.product.price }} / {{ item.product.unit }}</p>
+                <div class="mt-3">
+                    <a href="{% url 'product_detail' item.product.id %}" class="btn btn-success btn-sm">Open Product</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-muted mb-0">No recommendations available yet. The model needs customer interaction data to learn preferences.</p>
+    {% endif %}
+</div>
+{% endif %}
+
+{% if user.role == "producer" or user.role == "admin" %}
+<div class="card card-soft p-4 fade-stagger">
+    <div class="section-head mb-3">
+        <div>
+            <h4 class="mb-1">Demand Forecast</h4>
+            <p class="text-muted mb-0">
+                {% if user.role == "producer" %}
+                Forecasts are limited to your own products.
+                {% else %}
+                Forecasts cover the whole marketplace network.
+                {% endif %}
+            </p>
+        </div>
+        <span class="badge-soft">8-week weighted moving average</span>
+    </div>
+    {% if forecasts %}
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Producer</th>
+                    <th>Weekly Demand</th>
+                    <th>Next Week</th>
+                    <th>Recommended Stock</th>
+                    <th>Trend</th>
+                    <th>Confidence</th>
+                    <th>Explanation</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in forecasts %}
+                <tr>
+                    <td>{{ item.product.name }}</td>
+                    <td>{{ item.product.producer.username }}</td>
+                    <td>{{ item.weekly_demand|join:", " }}</td>
+                    <td class="fw-bold text-success">{{ item.forecast_next_week }}</td>
+                    <td>{{ item.recommended_stock }}</td>
+                    <td><span class="badge-soft">{{ item.trend|title }}</span></td>
+                    <td>{{ item.confidence|title }}</td>
+                    <td class="small">{{ item.explanation }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-muted mb-0">No demand forecast available yet because there is not enough order history in scope.</p>
+    {% endif %}
+</div>
+{% endif %}
+
+<div class="card p-4 mt-4">
+    <h5 class="mb-3">Why the model made these outputs</h5>
+    <p class="mb-1">Recommendations use purchase frequency, quantity, recent buying behaviour, co-purchase patterns, and network-wide popularity.</p>
+    <p class="mb-0">Forecasts use recent weekly order quantities with higher weight on newer weeks, then add a 20% safety buffer for stock planning.</p>
+</div>
+{% endblock %}

@@ -5,9 +5,14 @@
 {% block content %}
 <div class="section-head">
     <h2 class="mb-0"><i class="fas fa-box-open text-success me-2"></i>Your Products</h2>
-    <a href="{% url 'producer_add_product' %}" class="btn btn-success">
-        <i class="fas fa-plus me-1"></i> Add New Product
-    </a>
+    <div class="d-flex gap-2">
+        <a href="{% url 'producer_quality_inspection' %}" class="btn btn-outline-success">
+            <i class="fas fa-microscope me-1"></i> Quality Inspection
+        </a>
+        <a href="{% url 'producer_add_product' %}" class="btn btn-success">
+            <i class="fas fa-plus me-1"></i> Add New Product
+        </a>
+    </div>
 </div>
 
 <div class="card card-soft p-4 fade-stagger">

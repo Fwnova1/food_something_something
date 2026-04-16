@@ -113,3 +113,35 @@ class ContentPost(models.Model):
 
     def __str__(self):
         return f"{self.get_content_type_display()}: {self.title}"
+
+
+class QualityInspection(models.Model):
+    GRADE_CHOICES = (
+        ("A", "Grade A"),
+        ("B", "Grade B"),
+        ("C", "Grade C"),
+    )
+
+    FRESHNESS_CHOICES = (
+        ("fresh", "Fresh"),
+        ("rotten", "Rotten"),
+        ("unknown", "Unknown"),
+    )
+
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="quality_inspections")
+    producer = models.ForeignKey("users.User", on_delete=models.CASCADE, related_name="quality_inspections")
+    inspection_image = models.ImageField(upload_to="quality_inspections/", blank=True)
+    produce_type = models.CharField(max_length=50, blank=True)
+    freshness_label = models.CharField(max_length=20, choices=FRESHNESS_CHOICES, default="unknown")
+    freshness_confidence = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    color_score = models.PositiveSmallIntegerField()
+    size_score = models.PositiveSmallIntegerField()
+    ripeness_score = models.PositiveSmallIntegerField()
+    overall_grade = models.CharField(max_length=1, choices=GRADE_CHOICES)
+    suggested_action = models.CharField(max_length=255, blank=True)
+    explanation = models.TextField(blank=True)
+    assessed_by_model = models.CharField(max_length=100, default="heuristic_quality_pipeline")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.product.name} - Grade {self.overall_grade} ({self.created_at:%Y-%m-%d %H:%M})"

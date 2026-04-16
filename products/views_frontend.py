@@ -13,7 +13,10 @@ from django.utils.text import slugify
 from django.utils import timezone
 
 from orders.models import Cart, CartItem, Order, OrderItem, RecurringOrder, RecurringOrderItem
-from .models import Category, Product, ProductReview, ContentPost
+from .forecasting import build_demand_forecast_for_scope
+from .models import Category, Product, ProductReview, ContentPost, QualityInspection
+from .quality_inspection import inspect_product_quality
+from .recommendation import build_customer_recommendations, build_quick_reorder_suggestions
 
 User = get_user_model()
 TRACKING_STAGES = ["pending", "confirmed", "shipped", "delivered"]
@@ -211,6 +214,25 @@ class ContentPostForm(forms.ModelForm):
             self.fields["related_product"].queryset = Product.objects.filter(producer=user).order_by("name")
 
 
+class QualityInspectionForm(forms.Form):
+    product = forms.ModelChoiceField(queryset=Product.objects.none())
+    inspection_image = forms.ImageField(required=False)
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop("user", None)
+        super().__init__(*args, **kwargs)
+        queryset = Product.objects.none()
+        if user:
+            if user.role == "producer":
+                queryset = Product.objects.filter(producer=user).order_by("name")
+            elif user.role == "admin":
+                queryset = Product.objects.all().order_by("name")
+
+        self.fields["product"].queryset = queryset
+        self.fields["product"].widget.attrs.update({"class": "form-select"})
+        self.fields["inspection_image"].widget.attrs.update({"class": "form-control"})
+
+
 def build_tracking_steps(status):
     if status == "cancelled":
         return [
@@ -243,6 +265,8 @@ def _available_products_queryset():
 def product_list(request):
     products = _available_products_queryset().select_related("category", "producer")
     categories = Category.objects.all()
+    recommendations = []
+    quick_reorders = []
 
     category_id = request.GET.get("category")
     search_query = (request.GET.get("q") or "").strip()
@@ -263,11 +287,17 @@ def product_list(request):
     if organic_only:
         products = products.filter(is_organic=True)
 
+    if request.user.is_authenticated and request.user.role == "customer":
+        recommendations = build_customer_recommendations(request.user, limit=4)
+        quick_reorders = build_quick_reorder_suggestions(request.user, limit=3)
+
     context = {
         "products": products,
         "categories": categories,
         "search_query": search_query,
         "organic_only": organic_only,
+        "recommendations": recommendations,
+        "quick_reorders": quick_reorders,
     }
 
     return render(request, "product_list.html", context)
@@ -319,7 +349,34 @@ def register_view(request):
 
 @login_required
 def profile_view(request):
-    return render(request, "profile.html")
+    context = {
+        "total_orders": Order.objects.filter(user=request.user).count(),
+    }
+    return render(request, "profile.html", context)
+
+
+@login_required
+def ai_insights_view(request):
+    recommendations = []
+    quick_reorders = []
+    forecasts = []
+
+    if request.user.role == "customer":
+        recommendations = build_customer_recommendations(request.user, limit=6)
+        quick_reorders = build_quick_reorder_suggestions(request.user, limit=4)
+
+    if request.user.role in {"producer", "admin"}:
+        forecasts = build_demand_forecast_for_scope(request.user, limit=8)
+
+    return render(
+        request,
+        "ai_insights.html",
+        {
+            "recommendations": recommendations,
+            "quick_reorders": quick_reorders,
+            "forecasts": forecasts,
+        },
+    )
 
 
 def logout_view(request):
@@ -507,6 +564,61 @@ def producer_manage_products(request):
         "producer_products": producer_products,
     }
     return render(request, "producer_manage_products.html", context)
+
+
+@login_required
+def producer_quality_inspection_view(request):
+    if request.user.role not in {"producer", "admin"}:
+        messages.error(request, "Only producer or admin accounts can access quality inspection.")
+        return redirect("profile")
+
+    latest_result = None
+    if request.method == "POST":
+        form = QualityInspectionForm(request.POST, request.FILES, user=request.user)
+        if form.is_valid():
+            product = form.cleaned_data["product"]
+            uploaded_image = form.cleaned_data.get("inspection_image")
+
+            if not uploaded_image and not product.image:
+                messages.error(request, "Upload an inspection image or add an image to the selected product first.")
+                return redirect("producer_quality_inspection")
+
+            image_source = uploaded_image or product.image
+            result = inspect_product_quality(product, image_source)
+            inspection = QualityInspection.objects.create(
+                product=product,
+                producer=product.producer,
+                inspection_image=uploaded_image if uploaded_image else None,
+                produce_type=result.produce_type,
+                freshness_label=result.freshness_label,
+                freshness_confidence=result.freshness_confidence,
+                color_score=result.color_score,
+                size_score=result.size_score,
+                ripeness_score=result.ripeness_score,
+                overall_grade=result.overall_grade,
+                suggested_action=result.suggested_action,
+                explanation=result.explanation,
+                assessed_by_model=result.assessed_by_model,
+            )
+            latest_result = inspection
+            messages.success(request, f"Quality inspection completed for {product.name}.")
+    else:
+        form = QualityInspectionForm(user=request.user)
+
+    inspections = QualityInspection.objects.select_related("product", "producer")
+    if request.user.role == "producer":
+        inspections = inspections.filter(producer=request.user)
+    inspections = inspections.order_by("-created_at")[:12]
+
+    return render(
+        request,
+        "producer_quality_inspection.html",
+        {
+            "form": form,
+            "latest_result": latest_result,
+            "inspections": inspections,
+        },
+    )
 
 
 @login_required

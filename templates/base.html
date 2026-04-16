@@ -305,6 +305,7 @@
                             {% if user.is_authenticated %}
                             <li><a class="dropdown-item" href="{% url 'order_list' %}"><i class="fas fa-receipt me-2"></i>My Orders</a></li>
                             <li><a class="dropdown-item" href="{% url 'recurring_order_list' %}"><i class="fas fa-repeat me-2"></i>Recurring Orders</a></li>
+                            <li><a class="dropdown-item" href="{% url 'ai_insights' %}"><i class="fas fa-brain me-2"></i>AI Insights</a></li>
                             {% endif %}
                         </ul>
                     </li>
@@ -315,6 +316,7 @@
                         </a>
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="{% url 'producer_manage_products' %}"><i class="fas fa-box-open me-2"></i>Manage Products</a></li>
+                            <li><a class="dropdown-item" href="{% url 'producer_quality_inspection' %}"><i class="fas fa-microscope me-2"></i>Quality Inspection</a></li>
                             <li><a class="dropdown-item" href="{% url 'producer_order_list' %}"><i class="fas fa-clipboard-check me-2"></i>Producer Orders</a></li>
                             <li><a class="dropdown-item" href="{% url 'producer_review_moderation' %}"><i class="fas fa-star me-2"></i>Review Moderation</a></li>
                             <li><a class="dropdown-item" href="{% url 'producer_content_list' %}"><i class="fas fa-pen-nib me-2"></i>Recipes/Stories CMS</a></li>
@@ -337,6 +339,7 @@
                                 <li><a class="dropdown-item" href="{% url 'profile' %}"><i class="fas fa-id-card me-2"></i>Profile</a></li>
                                 <li><a class="dropdown-item" href="{% url 'order_list' %}"><i class="fas fa-receipt me-2"></i>Orders</a></li>
                                 <li><a class="dropdown-item" href="{% url 'recurring_order_list' %}"><i class="fas fa-repeat me-2"></i>Recurring</a></li>
+                                <li><a class="dropdown-item" href="{% url 'ai_insights' %}"><i class="fas fa-brain me-2"></i>AI Insights</a></li>
                                 <li><a class="dropdown-item" href="{% url 'content_list' %}"><i class="fas fa-book-open me-2"></i>Recipes & Stories</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>

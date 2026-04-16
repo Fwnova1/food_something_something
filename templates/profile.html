@@ -19,6 +19,7 @@
                         <p><strong>Address:</strong> {{ user.address|default:"-" }}</p>
                         <p><strong>Postcode:</strong> {{ user.postcode|default:"-" }}</p>
                         <p><strong>Role:</strong> {{ user.get_role_display }}</p>
+                        <p><strong>Total Orders:</strong> {{ total_orders }}</p>
                         {% if user.role == 'producer' %}
                         <p><strong>Business:</strong> {{ user.business_name|default:"-" }}</p>
                         <p><strong>Contact Name:</strong> {{ user.contact_name|default:"-" }}</p>
@@ -43,9 +44,15 @@
                             <a href="{% url 'content_list' %}" class="btn btn-outline-success">
                                 <i class="fas fa-book-open me-1"></i> Recipes & Stories
                             </a>
+                            <a href="{% url 'ai_insights' %}" class="btn btn-outline-success">
+                                <i class="fas fa-brain me-1"></i> AI Insights
+                            </a>
                             {% if user.role == 'producer' %}
                             <a href="{% url 'producer_manage_products' %}" class="btn btn-outline-success">
                                 <i class="fas fa-box-open me-1"></i> Manage Products
+                            </a>
+                            <a href="{% url 'producer_quality_inspection' %}" class="btn btn-outline-success">
+                                <i class="fas fa-microscope me-1"></i> Quality Inspection
                             </a>
                             <a href="{% url 'producer_order_list' %}" class="btn btn-outline-success">
                                 <i class="fas fa-clipboard-check me-1"></i> Confirm Orders
