@@ -402,7 +402,7 @@ def cart_view(request):
                 "line_total": line_total,
             }
         )
-
+                                                                
     return render(request, "cart.html", {"cart_rows": cart_rows, "total": total})
 
 

@@ -32,13 +32,6 @@ def main() -> int:
         if isinstance(labels, dict):
             print(f"Classifier metadata keys: {sorted(labels.keys())}")
 
-    multi_model_path = repo_root / "weights" / "quality_multi_output_model.keras"
-    metadata_path = repo_root / "weights" / "quality_multi_output_metadata.json"
-    print(f"Multi-output model exists: {multi_model_path.exists()} -> {multi_model_path}")
-    print(f"Multi-output metadata exists: {metadata_path.exists()} -> {metadata_path}")
-    if metadata_path.exists():
-        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-        print(f"Metadata keys: {sorted(metadata.keys())}")
     return 0
 
 

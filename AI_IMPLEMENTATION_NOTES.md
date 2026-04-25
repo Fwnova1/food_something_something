@@ -12,11 +12,9 @@ This branch captures the AI work added for the Bristol Regional Food Network cas
 - Heuristic scoring for `Color`, `Size`, and `Ripeness`.
 - Grade mapping to `A`, `B`, and `C` using the assignment thresholds.
 - Support path for existing `weights/fruit_fresh_rotten_model.keras`.
-- Support path for a future multi-output `quality_multi_output_model.keras`.
 - ML helper scripts under `ml/` for:
   - inference environment validation
   - bootstrapping quality labels
-  - training a multi-output CNN
 
 ## Important runtime note
 
@@ -39,7 +37,6 @@ The main Django runtime originally used a Python environment without TensorFlow 
 - `ml/README.md`
 - `ml/check_inference_env.py`
 - `ml/bootstrap_quality_labels.py`
-- `ml/train_quality_model.py`
 
 ## Validation completed
 

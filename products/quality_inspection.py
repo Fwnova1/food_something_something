@@ -127,38 +127,104 @@ def _score_color(subject_pixels: list[tuple[int, int, int]]) -> int:
     hsv_values = [colorsys.rgb_to_hsv(r / 255.0, g / 255.0, b / 255.0) for r, g, b in subject_pixels]
     avg_saturation = sum(hsv[1] for hsv in hsv_values) / len(hsv_values)
     avg_brightness = sum(hsv[2] for hsv in hsv_values) / len(hsv_values)
-    hue_values = [hsv[0] for hsv in hsv_values]
-    hue_spread = max(hue_values) - min(hue_values) if hue_values else 0.0
+
+    # Hue is circular (0.0 == 1.0). Compute spread using the shortest arc.
+    hue_values = [h for h, s, _ in hsv_values if s >= 0.12]
+    if len(hue_values) <= 1:
+        hue_spread = 0.0
+    else:
+        ordered = sorted(hue_values)
+        gaps = [ordered[idx + 1] - ordered[idx] for idx in range(len(ordered) - 1)]
+        gaps.append((ordered[0] + 1.0) - ordered[-1])
+        largest_gap = max(gaps)
+        hue_spread = max(0.0, 1.0 - largest_gap)
+
     uniformity = max(0.0, 1.0 - min(1.0, hue_spread * 1.8))
-    score = (avg_saturation * 42.0) + (avg_brightness * 33.0) + (uniformity * 25.0)
+
+    # Penalize under/over-exposed captures; broad mid-high brightness usually preserves produce color best.
+    exposure_score = max(0.0, 100.0 - (abs(avg_brightness - 0.68) / 0.65) * 100.0)
+
+    # Lightweight colorfulness metric (Hasler/Susstrunk-style components), normalized to 0-100.
+    rg_values = [abs(r - g) for r, g, _ in subject_pixels]
+    yb_values = [abs(0.5 * (r + g) - b) for r, g, b in subject_pixels]
+    rg_mean = sum(rg_values) / len(rg_values)
+    yb_mean = sum(yb_values) / len(yb_values)
+    rg_std = math.sqrt(sum((value - rg_mean) ** 2 for value in rg_values) / len(rg_values))
+    yb_std = math.sqrt(sum((value - yb_mean) ** 2 for value in yb_values) / len(yb_values))
+    colorfulness = math.sqrt(rg_std**2 + yb_std**2) + (0.3 * math.sqrt(rg_mean**2 + yb_mean**2))
+    colorfulness_score = max(0.0, min(100.0, (colorfulness / 120.0) * 100.0))
+
+    shadow_penalty = max(0.0, ((0.35 - avg_brightness) / 0.35) * 18.0)
+    highlight_penalty = max(0.0, ((avg_brightness - 0.95) / 0.05) * 12.0)
+
+    score = (
+        avg_saturation * 100.0 * 0.44
+        + exposure_score * 0.23
+        + uniformity * 100.0 * 0.25
+        + colorfulness_score * 0.08
+        - shadow_penalty
+        - highlight_penalty
+    )
     return _clamp(score)
 
 
 def _score_size(image: Image.Image, subject_pixels: list[tuple[int, int, int]]) -> int:
     subject_ratio = len(subject_pixels) / max(1, image.size[0] * image.size[1])
-    ideal_ratio = 0.42
-    deviation = abs(subject_ratio - ideal_ratio)
-    score = 100.0 - min(100.0, (deviation / ideal_ratio) * 100.0)
-    return _clamp(score)
+    if subject_ratio <= 0.08:
+        # Subject too small in frame.
+        return _clamp((subject_ratio / 0.08) * 30.0)
+    if subject_ratio <= 0.25:
+        # Ramp quickly into acceptable inspection framing.
+        return _clamp(30.0 + ((subject_ratio - 0.08) / 0.17) * 55.0)
+    if subject_ratio <= 0.75:
+        # Best range: produce occupies enough pixels without being heavily cropped.
+        center_deviation = abs(subject_ratio - 0.5) / 0.25
+        return _clamp(88.0 + (1.0 - min(1.0, center_deviation)) * 12.0)
+    if subject_ratio <= 0.92:
+        # Slightly over-cropped / too dominant in frame.
+        return _clamp(85.0 - ((subject_ratio - 0.75) / 0.17) * 35.0)
+    # Very likely heavily cropped or segmentation failed.
+    return _clamp(max(15.0, 50.0 - ((subject_ratio - 0.92) / 0.08) * 35.0))
+
+
+def _circular_mean_hue_degrees(hues: list[float]) -> float:
+    if not hues:
+        return 0.0
+    sin_sum = sum(math.sin(2.0 * math.pi * hue) for hue in hues)
+    cos_sum = sum(math.cos(2.0 * math.pi * hue) for hue in hues)
+    if sin_sum == 0.0 and cos_sum == 0.0:
+        return 0.0
+    angle = math.atan2(sin_sum, cos_sum)
+    if angle < 0:
+        angle += 2.0 * math.pi
+    return math.degrees(angle)
 
 
 def _produce_hue_score(produce_type: str, hsv_values: list[tuple[float, float, float]]) -> float:
     if not hsv_values:
         return 50.0
 
-    avg_hue = sum(hsv[0] for hsv in hsv_values) / len(hsv_values)
-    hue_degrees = avg_hue * 360.0
+    vivid_hues = [h for h, s, v in hsv_values if s >= 0.12 and v >= 0.15]
+    if not vivid_hues:
+        return 55.0
+
+    hue_degrees = _circular_mean_hue_degrees(vivid_hues)
     targets = {
-        "apple": 5.0,
-        "banana": 52.0,
-        "orange": 32.0,
-        "tomato": 6.0,
-        "carrot": 28.0,
-        "cucumber": 118.0,
+        "apple": (8.0, 28.0),
+        "banana": (55.0, 24.0),
+        "orange": (30.0, 22.0),
+        "tomato": (7.0, 26.0),
+        "carrot": (28.0, 20.0),
+        "cucumber": (115.0, 24.0),
+        "bellpepper": (105.0, 38.0),
+        "mango": (42.0, 26.0),
+        "guava": (95.0, 60.0),
+        "grape": (260.0, 95.0),
+        "jujube": (12.0, 34.0),
     }
-    target = targets.get(produce_type, 45.0)
+    target, tolerance = targets.get(produce_type, (45.0, 35.0))
     distance = min(abs(hue_degrees - target), 360.0 - abs(hue_degrees - target))
-    return max(20.0, 100.0 - (distance / 90.0) * 100.0)
+    return max(20.0, 100.0 - (distance / tolerance) * 100.0)
 
 
 def _score_ripeness(produce_type: str, subject_pixels: list[tuple[int, int, int]], freshness_confidence: float) -> int:
@@ -167,16 +233,81 @@ def _score_ripeness(produce_type: str, subject_pixels: list[tuple[int, int, int]
     avg_brightness = sum(hsv[2] for hsv in hsv_values) / len(hsv_values)
     hue_score = _produce_hue_score(produce_type, hsv_values)
     freshness_score = max(0.0, min(100.0, freshness_confidence))
-    score = (freshness_score * 0.45) + (hue_score * 0.3) + (avg_saturation * 100.0 * 0.15) + (avg_brightness * 100.0 * 0.1)
+    # Ripeness leans on hue alignment and freshness, with saturation/brightness as secondary signals.
+    score = (
+        freshness_score * 0.35
+        + hue_score * 0.40
+        + avg_saturation * 100.0 * 0.15
+        + avg_brightness * 100.0 * 0.10
+    )
     return _clamp(score)
 
 
-def _grade_from_scores(color_score: int, size_score: int, ripeness_score: int) -> str:
-    if color_score < 65 or size_score < 70 or ripeness_score < 60:
-        return "C"
-    if color_score < 75 or size_score < 80 or ripeness_score < 70:
-        return "B"
-    return "A"
+def _grade_profile(produce_type: str) -> dict[str, int]:
+    # Produce-specific grading thresholds.
+    profiles = {
+        "banana": {"a_min": 80, "b_min": 64, "min_color": 58, "min_size": 52, "min_ripeness": 58},
+        "tomato": {"a_min": 83, "b_min": 67, "min_color": 62, "min_size": 54, "min_ripeness": 60},
+        "cucumber": {"a_min": 81, "b_min": 65, "min_color": 60, "min_size": 58, "min_ripeness": 56},
+        "default": {"a_min": 82, "b_min": 66, "min_color": 60, "min_size": 55, "min_ripeness": 58},
+    }
+    return profiles.get(produce_type, profiles["default"])
+
+
+def _freshness_signal_score(freshness_label: str, freshness_confidence: float) -> int:
+    confidence = max(0.0, min(100.0, freshness_confidence))
+    if freshness_label == "fresh":
+        return _clamp(confidence)
+    if freshness_label == "rotten":
+        # Confident rotten predictions should heavily suppress grade.
+        return _clamp(35.0 - (confidence * 0.35))
+    return 55
+
+
+def _quality_index(
+    color_score: int,
+    size_score: int,
+    ripeness_score: int,
+    freshness_label: str,
+    freshness_confidence: float,
+) -> int:
+    freshness_score = _freshness_signal_score(freshness_label, freshness_confidence)
+    score = (
+        color_score * 0.35
+        + size_score * 0.20
+        + ripeness_score * 0.30
+        + freshness_score * 0.15
+    )
+    return _clamp(score)
+
+
+def _grade_from_scores(
+    produce_type: str,
+    color_score: int,
+    size_score: int,
+    ripeness_score: int,
+    freshness_label: str,
+    freshness_confidence: float,
+) -> tuple[str, int]:
+    profile = _grade_profile(produce_type)
+    quality_index = _quality_index(color_score, size_score, ripeness_score, freshness_label, freshness_confidence)
+
+    # Any rotten prediction forces grade C, regardless of confidence.
+    if freshness_label == "rotten":
+        return "C", quality_index
+
+    if (
+        color_score < profile["min_color"]
+        or size_score < profile["min_size"]
+        or ripeness_score < profile["min_ripeness"]
+    ):
+        return "C", quality_index
+
+    if quality_index >= profile["a_min"]:
+        return "A", quality_index
+    if quality_index >= profile["b_min"]:
+        return "B", quality_index
+    return "C", quality_index
 
 
 def _suggested_action(grade: str, stock_quantity: int) -> str:
@@ -191,17 +322,23 @@ def _suggested_action(grade: str, stock_quantity: int) -> str:
     return "Use for rapid sale, donation, or remove from premium listing."
 
 
-def _build_explanation(color_score: int, size_score: int, ripeness_score: int, freshness_label: str) -> str:
+def _build_explanation(
+    color_score: int,
+    size_score: int,
+    ripeness_score: int,
+    freshness_label: str,
+    quality_index: int,
+) -> str:
     return (
         f"Color {color_score}%, Size {size_score}%, Ripeness {ripeness_score}%."
-        f" Freshness signal indicates {freshness_label}. Grade follows assignment thresholds."
+        f" Freshness signal indicates {freshness_label}. Quality index {quality_index}% drives the final grade."
     )
 
 
 def _normalize_freshness_label(label: str) -> str:
     normalized = (label or "").strip().lower()
     if normalized in {"healthy", "fresh"}:
-        return "healthy"
+        return "fresh"
     if normalized == "rotten":
         return "rotten"
     return "unknown"
@@ -258,76 +395,6 @@ def _parse_classifier_label(label: str) -> tuple[str, str]:
     return _normalize_produce_token(raw_label), "unknown"
 
 
-def _quality_model_paths() -> tuple[Path, Path]:
-    weights_dir = Path(settings.BASE_DIR) / "weights"
-    return (
-        weights_dir / "quality_multi_output_model.keras",
-        weights_dir / "quality_multi_output_metadata.json",
-    )
-
-
-def _predict_multi_output_quality_with_keras(image: Image.Image) -> QualityInspectionResult | None:
-    model_path, metadata_path = _quality_model_paths()
-    if not model_path.exists() or not metadata_path.exists():
-        return None
-
-    try:
-        import tensorflow as tf
-    except Exception:
-        return None
-
-    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-    image_size = int(metadata.get("image_size", 224))
-    produce_labels = metadata.get("produce_labels", [])
-    freshness_labels = metadata.get("freshness_labels", ["healthy", "rotten"])
-    grade_labels = metadata.get("grade_labels", ["A", "B", "C"])
-
-    resized = image.resize((image_size, image_size))
-    tensor = tf.keras.utils.img_to_array(resized)
-    tensor = tf.expand_dims(tensor, axis=0) / 255.0
-
-    model = tf.keras.models.load_model(model_path)
-    predictions = model.predict(tensor, verbose=0)
-
-    if not isinstance(predictions, dict):
-        return None
-
-    produce_logits = predictions.get("produce_type")
-    freshness_logits = predictions.get("freshness")
-    color_pred = predictions.get("color_score")
-    size_pred = predictions.get("size_score")
-    ripeness_pred = predictions.get("ripeness_score")
-    grade_logits = predictions.get("grade")
-    if any(value is None for value in [produce_logits, freshness_logits, color_pred, size_pred, ripeness_pred, grade_logits]):
-        return None
-
-    produce_index = int(tf.argmax(produce_logits[0]).numpy())
-    freshness_index = int(tf.argmax(freshness_logits[0]).numpy())
-    grade_index = int(tf.argmax(grade_logits[0]).numpy())
-    produce_type = produce_labels[produce_index] if produce_index < len(produce_labels) else "unknown"
-    freshness_label = freshness_labels[freshness_index] if freshness_index < len(freshness_labels) else "unknown"
-    freshness_confidence = float(tf.reduce_max(freshness_logits[0]).numpy()) * 100.0
-    color_score = _clamp(float(color_pred[0][0]) * 100.0)
-    size_score = _clamp(float(size_pred[0][0]) * 100.0)
-    ripeness_score = _clamp(float(ripeness_pred[0][0]) * 100.0)
-    overall_grade = grade_labels[grade_index] if grade_index < len(grade_labels) else _grade_from_scores(color_score, size_score, ripeness_score)
-    suggested_action = _suggested_action(overall_grade, 0)
-    explanation = _build_explanation(color_score, size_score, ripeness_score, freshness_label)
-
-    return QualityInspectionResult(
-        produce_type=produce_type,
-        freshness_label=freshness_label,
-        freshness_confidence=round(freshness_confidence, 2),
-        color_score=color_score,
-        size_score=size_score,
-        ripeness_score=ripeness_score,
-        overall_grade=overall_grade,
-        suggested_action=suggested_action,
-        explanation=explanation,
-        assessed_by_model=model_path.name,
-    )
-
-
 def _predict_classifier_with_keras(image: Image.Image, produce_type_hint: str) -> FreshnessResult | None:
     model_path = Path(settings.BASE_DIR) / "weights" / "fruit_vegetable_classifier.h5"
     if not model_path.exists():
@@ -366,7 +433,7 @@ def _predict_classifier_with_keras(image: Image.Image, produce_type_hint: str) -
 
     if len(output) == 2:
         best_index = max(range(len(output)), key=lambda idx: float(output[idx]))
-        predicted_label = ("healthy", "rotten")[best_index]
+        predicted_label = ("fresh", "rotten")[best_index]
         return FreshnessResult(
             produce_type=produce_type_hint,
             freshness_label=_normalize_freshness_label(predicted_label),
@@ -402,28 +469,13 @@ def inspect_product_quality(product, image_source) -> QualityInspectionResult:
     image = _open_image(image_source)
     subject_pixels = _extract_subject_pixels(image)
 
-    full_quality_result = _predict_multi_output_quality_with_keras(image)
-    if full_quality_result is not None:
-        return QualityInspectionResult(
-            produce_type=full_quality_result.produce_type,
-            freshness_label=full_quality_result.freshness_label,
-            freshness_confidence=full_quality_result.freshness_confidence,
-            color_score=full_quality_result.color_score,
-            size_score=full_quality_result.size_score,
-            ripeness_score=full_quality_result.ripeness_score,
-            overall_grade=full_quality_result.overall_grade,
-            suggested_action=_suggested_action(full_quality_result.overall_grade, product.stock_quantity),
-            explanation=full_quality_result.explanation,
-            assessed_by_model=full_quality_result.assessed_by_model,
-        )
-
     classifier_result = _predict_classifier_with_keras(image, produce_type_hint)
     color_score = _score_color(subject_pixels)
     if classifier_result is None:
         freshness_confidence = 82.0 if color_score >= 65 else 58.0
         freshness = FreshnessResult(
             produce_type=produce_type_hint,
-            freshness_label="healthy" if freshness_confidence >= 65 else "rotten",
+            freshness_label="fresh" if freshness_confidence >= 65 else "rotten",
             confidence=freshness_confidence,
             model_name="heuristic_quality_pipeline",
         )
@@ -431,7 +483,7 @@ def inspect_product_quality(product, image_source) -> QualityInspectionResult:
         freshness_confidence = 82.0 if color_score >= 65 else 58.0
         freshness = FreshnessResult(
             produce_type=classifier_result.produce_type or produce_type_hint,
-            freshness_label="healthy" if freshness_confidence >= 65 else "rotten",
+            freshness_label="fresh" if freshness_confidence >= 65 else "rotten",
             confidence=freshness_confidence,
             model_name=f"{classifier_result.model_name} + heuristic_quality_pipeline",
         )
@@ -442,9 +494,22 @@ def inspect_product_quality(product, image_source) -> QualityInspectionResult:
 
     size_score = _score_size(image, subject_pixels)
     ripeness_score = _score_ripeness(produce_type, subject_pixels, freshness.confidence)
-    overall_grade = _grade_from_scores(color_score, size_score, ripeness_score)
+    overall_grade, quality_index = _grade_from_scores(
+        produce_type=produce_type,
+        color_score=color_score,
+        size_score=size_score,
+        ripeness_score=ripeness_score,
+        freshness_label=freshness.freshness_label,
+        freshness_confidence=freshness.confidence,
+    )
     suggested_action = _suggested_action(overall_grade, product.stock_quantity)
-    explanation = _build_explanation(color_score, size_score, ripeness_score, freshness.freshness_label)
+    explanation = _build_explanation(
+        color_score=color_score,
+        size_score=size_score,
+        ripeness_score=ripeness_score,
+        freshness_label=freshness.freshness_label,
+        quality_index=quality_index,
+    )
 
     return QualityInspectionResult(
         produce_type=produce_type,
