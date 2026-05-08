@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load payments_tags %}
 
 {% block title %}Order #{{ order.id }} - Tracking{% endblock %}
 
@@ -67,7 +68,16 @@
             {% if order.customer_note %}
             <p class="mb-2"><strong>Delivery Note:</strong> {{ order.customer_note }}</p>
             {% endif %}
-            <p class="mb-3"><strong>Status:</strong> <span class="badge-soft">{{ order.status|title }}</span></p>
+            <p class="mb-3"><strong>Status:</strong>
+                <span class="badge-soft">
+                    {% if order.status == "payment_pending" %}Awaiting payment{% else %}{{ order.status|title }}{% endif %}
+                </span>
+            </p>
+            <p class="mb-3"><strong>Payment:</strong>
+                {% with ps=order|order_payment_status %}
+                <span class="badge-soft">{{ ps|payment_status_display }}</span>
+                {% endwith %}
+            </p>
             {% if order.status == "shipped" %}
             <form method="post" action="{% url 'customer_confirm_delivery' order.id %}" class="mb-3">
                 {% csrf_token %}

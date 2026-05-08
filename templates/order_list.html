@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load payments_tags %}
 
 {% block title %}My Orders - Local Food Marketplace{% endblock %}
 
@@ -37,6 +38,7 @@
                     <th>Order ID</th>
                     <th>Date</th>
                     <th>Status</th>
+                    <th>Payment</th>
                     <th>Total</th>
                     <th></th>
                 </tr>
@@ -47,7 +49,14 @@
                     <td>#{{ order.id }}</td>
                     <td>{{ order.created_at|date:"M j, Y, g:i A" }}</td>
                     <td>
-                        <span class="badge-soft">{{ order.status|title }}</span>
+                        <span class="badge-soft">
+                            {% if order.status == "payment_pending" %}Awaiting payment{% else %}{{ order.status|title }}{% endif %}
+                        </span>
+                    </td>
+                    <td>
+                        {% with ps=order|order_payment_status %}
+                        <span class="badge-soft">{{ ps|payment_status_display }}</span>
+                        {% endwith %}
                     </td>
                     <td>${{ order.total }}</td>
                     <td>

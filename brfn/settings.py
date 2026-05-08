@@ -13,8 +13,12 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 import os
 
+from dotenv import load_dotenv
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+load_dotenv(BASE_DIR / ".env")
 
 
 # Quick-start development settings - unsuitable for production
@@ -133,3 +137,14 @@ AUTH_USER_MODEL = "users.User"
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+# Stripe (never commit secrets). Values come from environment / ``.env``.
+STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY", "")
+STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
+STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+STRIPE_API_VERSION = os.environ.get("STRIPE_API_VERSION", "2024-11-20.acacia")
+try:
+    STRIPE_WEBHOOK_MAX_BODY_BYTES = int(os.environ.get("STRIPE_WEBHOOK_MAX_BODY_BYTES", "1048576"))
+except ValueError:
+    STRIPE_WEBHOOK_MAX_BODY_BYTES = 1048576
+STRIPE_CHECKOUT_CURRENCY = os.environ.get("STRIPE_CHECKOUT_CURRENCY", "usd")
