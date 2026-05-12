@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}Profile - Local Food Marketplace{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-9 col-lg-8">
+        <div class="card card-soft fade-stagger">
+            <div class="card-body p-4">
+                <h2 class="card-title text-center mb-4">
+                    <i class="fas fa-user text-success me-2"></i>User Profile
+                </h2>
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <p><strong>Username:</strong> {{ user.username }}</p>
+                        <p><strong>Full name:</strong> {{ user.first_name }} {{ user.last_name }}</p>
+                        <p><strong>Email:</strong> {{ user.email }}</p>
+                        <p><strong>Phone:</strong> {{ user.phone|default:"-" }}</p>
+                        <p><strong>Address:</strong> {{ user.address|default:"-" }}</p>
+                        <p><strong>Postcode:</strong> {{ user.postcode|default:"-" }}</p>
+                        <p><strong>Role:</strong> {{ user.get_role_display }}</p>
+                        <p><strong>Total Orders:</strong> {{ total_orders }}</p>
+                        {% if user.role == 'producer' %}
+                        <p><strong>Business:</strong> {{ user.business_name|default:"-" }}</p>
+                        <p><strong>Contact Name:</strong> {{ user.contact_name|default:"-" }}</p>
+                        {% endif %}
+                        <p class="mb-0"><strong>Joined:</strong> {{ user.date_joined|date:"F j, Y" }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h5 class="mb-3">Quick Actions</h5>
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'product_list' %}" class="btn btn-outline-success">
+                                <i class="fas fa-shopping-bag me-1"></i> Browse Products
+                            </a>
+                            <a href="{% url 'cart' %}" class="btn btn-outline-success">
+                                <i class="fas fa-shopping-cart me-1"></i> View Cart
+                            </a>
+                            <a href="{% url 'order_list' %}" class="btn btn-outline-success">
+                                <i class="fas fa-receipt me-1"></i> My Orders
+                            </a>
+                            <a href="{% url 'recurring_order_list' %}" class="btn btn-outline-success">
+                                <i class="fas fa-repeat me-1"></i> Recurring Orders
+                            </a>
+                            <a href="{% url 'content_list' %}" class="btn btn-outline-success">
+                                <i class="fas fa-book-open me-1"></i> Recipes & Stories
+                            </a>
+                            <a href="{% url 'ai_insights' %}" class="btn btn-outline-success">
+                                <i class="fas fa-brain me-1"></i> AI Insights
+                            </a>
+                            {% if user.role == 'producer' %}
+                            <a href="{% url 'producer_manage_products' %}" class="btn btn-outline-success">
+                                <i class="fas fa-box-open me-1"></i> Manage Products
+                            </a>
+                            <a href="{% url 'producer_quality_inspection' %}" class="btn btn-outline-success">
+                                <i class="fas fa-microscope me-1"></i> Quality Inspection
+                            </a>
+                            <a href="{% url 'producer_order_list' %}" class="btn btn-outline-success">
+                                <i class="fas fa-clipboard-check me-1"></i> Confirm Orders
+                            </a>
+                            <a href="{% url 'producer_review_moderation' %}" class="btn btn-outline-success">
+                                <i class="fas fa-star me-1"></i> Moderate Reviews
+                            </a>
+                            <a href="{% url 'producer_content_list' %}" class="btn btn-outline-success">
+                                <i class="fas fa-pen-nib me-1"></i> Manage Recipes/Stories
+                            </a>
+                            {% endif %}
+                            <a href="{% url 'logout' %}" class="btn btn-success">
+                                <i class="fas fa-sign-out-alt me-1"></i> Logout
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}{% if editing %}Edit CMS Post{% else %}Create CMS Post{% endif %}{% endblock %}
+
+{% block content %}
+<div class="section-head">
+    <h2 class="mb-0">{% if editing %}Edit{% else %}Create{% endif %} Recipe/Story</h2>
+    <a href="{% url 'producer_content_list' %}" class="btn btn-outline-success">Back to CMS</a>
+</div>
+
+<div class="card card-soft p-4 fade-stagger">
+    <form method="post" enctype="multipart/form-data" class="d-grid gap-3">
+        {% csrf_token %}
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label" for="{{ form.content_type.id_for_label }}">Type</label>
+                {{ form.content_type }}
+            </div>
+            <div class="col-md-8">
+                <label class="form-label" for="{{ form.title.id_for_label }}">Title</label>
+                {{ form.title }}
+            </div>
+        </div>
+
+        <div>
+            <label class="form-label" for="{{ form.summary.id_for_label }}">Summary</label>
+            {{ form.summary }}
+        </div>
+
+        <div>
+            <label class="form-label" for="{{ form.body.id_for_label }}">Main Content</label>
+            {{ form.body }}
+        </div>
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label" for="{{ form.ingredients.id_for_label }}">Ingredients (recipe)</label>
+                {{ form.ingredients }}
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" for="{{ form.steps.id_for_label }}">Steps (recipe)</label>
+                {{ form.steps }}
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label" for="{{ form.prep_time_minutes.id_for_label }}">Prep Time (mins)</label>
+                {{ form.prep_time_minutes }}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="{{ form.cook_time_minutes.id_for_label }}">Cook Time (mins)</label>
+                {{ form.cook_time_minutes }}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="{{ form.servings.id_for_label }}">Servings</label>
+                {{ form.servings }}
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label" for="{{ form.cover_image.id_for_label }}">Cover Image</label>
+                {{ form.cover_image }}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="{{ form.category.id_for_label }}">Category</label>
+                {{ form.category }}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="{{ form.related_product.id_for_label }}">Related Product</label>
+                {{ form.related_product }}
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label" for="{{ form.status.id_for_label }}">Status</label>
+                {{ form.status }}
+            </div>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-success">{% if editing %}Save Changes{% else %}Create Post{% endif %}</button>
+            <a href="{% url 'producer_content_list' %}" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

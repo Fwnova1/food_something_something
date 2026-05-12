@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% load payments_tags %}
+
+{% block title %}Refund help · Order #{{ order.id }}{% endblock %}
+
+{% block content %}
+<div class="section-head">
+    <h2 class="mb-0"><i class="fas fa-life-ring text-success me-2"></i>Refund help</h2>
+    <a href="{% url 'order_detail' order.id %}" class="btn btn-outline-success">
+        <i class="fas fa-arrow-left me-1"></i> Back to order
+    </a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="card card-soft shadow-sm fade-stagger overflow-hidden">
+            <div class="card-header py-3 border-0" style="background: linear-gradient(135deg, #ecf4ef 0%, #e8f5ee 100%);">
+                <div class="text-muted small text-uppercase letter-spacing-wide mb-1">Order</div>
+                <div class="d-flex flex-wrap align-items-baseline justify-content-between gap-2">
+                    <h3 class="h5 mb-0 fw-semibold text-success">#{{ order.id }}</h3>
+                    <span class="badge-soft">{{ payment|customer_payment_status }}</span>
+                </div>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-3 small text-muted mb-3">
+                    <div class="col-sm-6">
+                        <div class="text-uppercase small fw-semibold mb-1" style="letter-spacing: 0.04em;">Order total</div>
+                        <div class="fs-6 text-dark fw-semibold">{{ order.total|usd }}</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="text-uppercase small fw-semibold mb-1" style="letter-spacing: 0.04em;">Paid on</div>
+                        <div class="fs-6 text-dark fw-semibold">{{ payment.paid_at|date:"M j, Y, g:i A"|default:"—" }}</div>
+                    </div>
+                </div>
+                <p class="small text-muted border-top pt-3 mb-4">{{ payment_status_summary }}</p>
+
+                {% if refund_request_open %}
+                <div class="rounded-3 p-3 mb-0" style="background: rgba(31, 122, 77, 0.07); border: 1px solid rgba(31, 122, 77, 0.22);">
+                    <div class="mb-2">
+                        <span class="fw-semibold text-success d-block">Your refund request</span>
+                        <div class="small text-muted mt-1 mb-0">
+                            <span class="text-uppercase fw-semibold me-1" style="letter-spacing: 0.04em;">Current status</span>
+                            <span class="badge-soft">{{ refund_request_open.status|customer_refund_request_status }}</span>
+                        </div>
+                    </div>
+                    <p class="small text-muted mb-3">
+                        Sent {{ refund_request_open.created_at|date:"M j, Y, g:i A" }}
+                        {% with lu=refund_request_open.processed_at|default:refund_request_open.processing_started_at %}
+                        {% if lu %}
+                        · Last update {{ lu|date:"M j, Y, g:i A" }}
+                        {% endif %}
+                        {% endwith %}
+                    </p>
+                    <div class="border rounded-3 p-3 bg-white mb-3">
+                        <div class="text-muted small text-uppercase fw-semibold mb-1" style="letter-spacing: 0.04em;">What you told us</div>
+                        <div class="small text-body" style="white-space: pre-wrap; max-height: 14rem; overflow: auto;">{{ refund_request_open.reason }}</div>
+                    </div>
+                    {% if refund_request_open|customer_refund_request_is_pending %}
+                    <p class="small fw-semibold text-body mb-1">Under review</p>
+                    <p class="small text-muted mb-0">We have your message and our team is reviewing it. You can leave this page — we'll show the next step here when there's news.</p>
+                    {% elif refund_request_open|customer_refund_request_is_approved %}
+                    <p class="small fw-semibold text-body mb-1">Refund approved</p>
+                    <p class="small text-muted mb-0">We've agreed to refund you. When we start sending it to your card or bank, <strong>Current status</strong> will change to <strong>Being processed</strong>, then to <strong>Refunded</strong> when it's done (or we'll let you know if something goes wrong).</p>
+                    {% elif refund_request_open|customer_refund_request_is_processing %}
+                    <p class="small fw-semibold text-body mb-1">Being processed</p>
+                    <p class="small text-muted mb-0">We're sending your refund now. It can take a few days to appear on your card or bank statement. When it's done, <strong>Current status</strong> will show <strong>Refunded</strong>. If something goes wrong, we'll show you here.</p>
+                    {% elif refund_request_open|customer_refund_request_is_failed %}
+                    <p class="small fw-semibold text-body mb-1">Couldn't complete</p>
+                    <p class="small text-muted mb-0">Something went wrong on our side. Our team can try again — check back here, or reach out with your order number if you need help sooner.</p>
+                    {% endif %}
+                </div>
+                <div class="d-flex justify-content-end mt-4">
+                    <a class="btn btn-outline-success" href="{% url 'order_detail' order.id %}">Back to order</a>
+                </div>
+
+                {% elif refund_request_latest %}
+                <div class="rounded-3 p-3 mb-4 border {% if refund_request_latest|customer_refund_request_is_rejected or refund_request_latest|customer_refund_request_is_failed %}bg-light{% else %}border-success{% endif %}" style="{% if not refund_request_latest|customer_refund_request_is_rejected and not refund_request_latest|customer_refund_request_is_failed %}background: rgba(25, 135, 84, 0.06);{% endif %}">
+                    <div class="mb-2">
+                        <span class="fw-semibold d-block">{% if refund_request_latest|customer_refund_request_is_completed %}Refunded{% else %}Previous request{% endif %}</span>
+                        <div class="small text-muted mt-1 mb-0">
+                            <span class="text-uppercase fw-semibold me-1" style="letter-spacing: 0.04em;">Current status</span>
+                            <span class="badge-soft">{{ refund_request_latest.status|customer_refund_request_status }}</span>
+                        </div>
+                    </div>
+                    <p class="small text-muted mb-3">
+                        Sent {{ refund_request_latest.created_at|date:"M j, Y, g:i A" }}
+                        {% with lu=refund_request_latest.processed_at|default:refund_request_latest.processing_started_at %}
+                        {% if lu %}
+                        · Last update {{ lu|date:"M j, Y, g:i A" }}
+                        {% endif %}
+                        {% endwith %}
+                    </p>
+                    <div class="border rounded-3 p-3 bg-white mb-3">
+                        <div class="text-muted small text-uppercase fw-semibold mb-1" style="letter-spacing: 0.04em;">What you told us</div>
+                        <div class="small text-body" style="white-space: pre-wrap; max-height: 14rem; overflow: auto;">{{ refund_request_latest.reason }}</div>
+                    </div>
+                    {% if refund_request_latest|customer_refund_request_is_completed %}
+                    <p class="small fw-semibold text-body mb-1">Refunded</p>
+                    <p class="small text-muted mb-0">You're all set. If you don't see the credit yet, give your bank a few business days to post it.</p>
+                    {% elif refund_request_latest|customer_refund_request_is_failed %}
+                    <p class="small fw-semibold text-body mb-1">Couldn't complete</p>
+                    <p class="small text-muted mb-2">We weren't able to complete this refund. If your order is still eligible, you can send a new message below.</p>
+                    {% elif refund_request_latest|customer_refund_request_is_rejected %}
+                    <p class="small fw-semibold text-body mb-1">Not approved</p>
+                    <p class="small text-muted mb-2">We aren't able to offer a refund for this request.</p>
+                    {% if refund_request_latest.admin_note %}
+                    <div class="border rounded-3 p-3 bg-white small mb-0">
+                        <div class="text-muted text-uppercase fw-semibold mb-1" style="letter-spacing: 0.04em;">Note from our team</div>
+                        <div style="white-space: pre-wrap;">{{ refund_request_latest.admin_note }}</div>
+                    </div>
+                    {% endif %}
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                {% if can_submit_refund_request %}
+                {% if refund_request_latest %}
+                <h4 class="h6 fw-semibold mb-3 mt-2">Send another message</h4>
+                <p class="small text-muted mb-3">If something still isn't right, tell us below. Each message is reviewed on its own.</p>
+                {% else %}
+                <h4 class="h6 fw-semibold mb-2">How can we help?</h4>
+                <p class="text-muted small mb-3">
+                    Describe what went wrong in a few sentences. When there's an update, you'll see it on this page.
+                </p>
+                {% endif %}
+                <form method="post" class="border-top pt-4">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="reason" class="form-label fw-semibold">What happened?</label>
+                        <textarea
+                            class="form-control"
+                            id="reason"
+                            name="reason"
+                            rows="6"
+                            placeholder="Example: an item arrived damaged, something was missing, or delivery didn't work out."
+                            required
+                            minlength="10"
+                        ></textarea>
+                        <div class="form-text">A bit of detail helps us respond faster (at least 10 characters).</div>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 flex-wrap">
+                        <a class="btn btn-outline-secondary" href="{% url 'order_detail' order.id %}">Cancel</a>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-paper-plane me-1"></i> Send request
+                        </button>
+                    </div>
+                </form>
+                {% elif not refund_request_open and not refund_request_latest %}
+                <p class="text-muted small mb-0">Nothing to show here yet. Open this order from <a href="{% url 'order_list' %}">My orders</a> if you were looking for refund help.</p>
+                {% elif refund_request_latest and not refund_request_open and not can_submit_refund_request %}
+                <div class="d-flex justify-content-end pt-2">
+                    <a class="btn btn-outline-success" href="{% url 'order_detail' order.id %}">Back to order</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

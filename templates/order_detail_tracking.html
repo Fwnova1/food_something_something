@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+{% load payments_tags %}
+
+{% block title %}Order #{{ order.id }} - Tracking{% endblock %}
+
+{% block content %}
+<div class="section-head">
+    <h2 class="mb-0"><i class="fas fa-truck text-success me-2"></i>Order #{{ order.id }}</h2>
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+        <a href="{% url 'order_list' %}" class="btn btn-outline-success">
+            <i class="fas fa-arrow-left me-1"></i> Back to Orders
+        </a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card card-soft p-4 fade-stagger">
+            <h4 class="mb-3">Order Items</h4>
+            {% if order.status == "delivered" %}
+            <p class="small text-muted mb-3">
+                Delivered — you can rate items you bought here once per product. Reviews may be checked before they appear publicly.
+            </p>
+            {% endif %}
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Producer</th>
+                            <th>Unit Price</th>
+                            <th>Qty</th>
+                            <th>Subtotal</th>
+                            <th class="text-nowrap">Your feedback</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in item_rows %}
+                        <tr>
+                            <td>{{ item.product_name }}</td>
+                            <td>{{ item.producer_name }}</td>
+                            <td>{{ item.price|usd }}</td>
+                            <td>{{ item.quantity }}</td>
+                            <td>{{ item.subtotal|usd }}</td>
+                            <td>
+                                {% if item.can_review %}
+                                <a href="{% url 'submit_review' order.id item.product_id %}" class="btn btn-sm btn-outline-success">Rate &amp; review</a>
+                                {% elif item.review %}
+                                <span class="small text-muted">
+                                    {% if item.review.status == "pending" %}Submitted — awaiting check{% elif item.review.status == "approved" %}Posted{% else %}Not shown{% endif %}
+                                </span>
+                                {% else %}
+                                <span class="text-muted small">—</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="d-flex justify-content-end">
+                <h5 class="text-success mb-0">Total: {{ order.total|usd }}</h5>
+            </div>
+            {% if receipt_breakdown %}
+            <div class="mt-4 border-top pt-4">
+                <h6 class="fw-semibold mb-1">Receipt</h6>
+                <p class="small text-muted mb-3">How your order total is split. Amounts are in US dollars.</p>
+                <dl class="row small mb-0 gx-3 gy-2">
+                    <dt class="col-7 col-sm-8 text-muted fw-normal mb-0">Items total</dt>
+                    <dd class="col-5 col-sm-4 text-end mb-0 fw-semibold">{{ receipt_breakdown.item_total|usd }}</dd>
+                    <dt class="col-7 col-sm-8 text-muted fw-normal mb-0">Marketplace fee</dt>
+                    <dd class="col-5 col-sm-4 text-end mb-0 fw-semibold">{{ receipt_breakdown.platform_fee|usd }}</dd>
+                    <dt class="col-7 col-sm-8 text-muted fw-normal mb-0">To producers</dt>
+                    <dd class="col-5 col-sm-4 text-end mb-0 fw-semibold">{{ receipt_breakdown.paid_to_producers|usd }}</dd>
+                </dl>
+            </div>
+            {% endif %}
+            <div class="d-flex justify-content-end mt-3">
+                <form method="post" action="{% url 'create_recurring_from_order' order.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-success btn-sm">Make Recurring</button>
+                </form>
+            </div>
+            {% if payment_history_rows %}
+            <div class="mt-4 border-top pt-4">
+                <h5 class="mb-3">Your payments</h5>
+                <p class="small text-muted mb-2">
+                    <strong>{{ payment_history_type_label }}</strong> — amount, status, refund update, and dates for this order.
+                </p>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Status</th>
+                                <th>Amount</th>
+                                <th>Refund</th>
+                                <th>Started</th>
+                                <th>Paid</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in payment_history_rows %}
+                            <tr>
+                                <td>{{ row.status }}</td>
+                                <td>{{ row.amount_display }}</td>
+                                <td>{{ row.refund }}</td>
+                                <td class="small text-muted">{{ row.created_at|date:"M j, Y, g:i A" }}</td>
+                                <td class="small text-muted">{{ row.paid_at|date:"M j, Y, g:i A"|default:"—" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card card-soft p-4 fade-stagger" style="animation-delay: 0.08s;">
+            <h4 class="mb-3">Tracking</h4>
+            <p class="mb-2"><strong>Placed:</strong> {{ order.created_at|date:"M j, Y, g:i A" }}</p>
+            <p class="mb-2"><strong>Delivery Address:</strong> {{ order.delivery_address|default:"-" }}</p>
+            <p class="mb-2"><strong>Delivery Postcode:</strong> {{ order.delivery_postcode|default:"-" }}</p>
+            {% if order.customer_note %}
+            <p class="mb-2"><strong>Delivery Note:</strong> {{ order.customer_note }}</p>
+            {% endif %}
+            <p class="mb-3"><strong>Status:</strong>
+                <span class="badge-soft">
+                    {% if order.status == "payment_pending" %}Awaiting payment{% else %}{{ order.status|title }}{% endif %}
+                </span>
+            </p>
+            <p class="mb-2"><strong>Payment:</strong>
+                {% if latest_payment %}
+                <span class="badge-soft">{{ latest_payment|customer_payment_status }}</span>
+                {% else %}
+                <span class="badge-soft">—</span>
+                {% endif %}
+            </p>
+            <p class="small text-muted mb-3">{{ payment_status_summary }}</p>
+            {% if latest_payment %}
+            {% if refund_request_open %}
+            <div class="border rounded-3 p-3 mb-3" style="background: rgba(31, 122, 77, 0.06); border-color: rgba(31, 122, 77, 0.25) !important;">
+                <div class="fw-semibold text-success mb-1">
+                    <i class="fas fa-life-ring me-1"></i> Refund help
+                </div>
+                <div class="small text-muted mb-2">
+                    Sent {{ refund_request_open.created_at|date:"M j, Y, g:i A" }}
+                    {% with lu=refund_request_open.processed_at|default:refund_request_open.processing_started_at %}
+                    {% if lu %}
+                    · Last update {{ lu|date:"M j, Y, g:i A" }}
+                    {% endif %}
+                    {% endwith %}
+                </div>
+                <div class="small text-muted mb-2">
+                    <span class="text-uppercase fw-semibold me-1" style="letter-spacing: 0.04em;">Current status</span>
+                    <span class="badge-soft">{{ refund_request_open.status|customer_refund_request_status }}</span>
+                </div>
+                <div class="border rounded-2 p-2 bg-white small mb-3">
+                    <div class="text-muted text-uppercase fw-semibold mb-1" style="font-size: 0.65rem; letter-spacing: 0.04em;">What you told us</div>
+                    <div class="text-body" style="white-space: pre-wrap; max-height: 6.5rem; overflow: auto;">{{ refund_request_open.reason }}</div>
+                </div>
+                {% if refund_request_open|customer_refund_request_is_pending %}
+                <p class="small text-muted mb-2 mb-sm-3">Under review — our team is looking at your message.</p>
+                {% elif refund_request_open|customer_refund_request_is_approved %}
+                <p class="small text-muted mb-2 mb-sm-3">Refund approved — when we start sending it, this will show <strong>Being processed</strong>.</p>
+                {% elif refund_request_open|customer_refund_request_is_processing %}
+                <p class="small text-muted mb-2 mb-sm-3">Being processed — your refund is underway; when it finishes you'll see <strong>Refunded</strong> here.</p>
+                {% elif refund_request_open|customer_refund_request_is_failed %}
+                <p class="small text-muted mb-2 mb-sm-3">We hit a snag — open the page below for details.</p>
+                {% endif %}
+                <a class="btn btn-outline-success btn-sm w-100" href="{% url 'payments:refund_request' order.id %}">
+                    Open refund page
+                </a>
+            </div>
+            {% elif refund_request_latest %}
+            <div class="border rounded-3 p-3 mb-3 bg-light">
+                <div class="fw-semibold mb-1">
+                    <i class="fas fa-life-ring me-1 text-success"></i> Refund help
+                </div>
+                <div class="small text-muted mb-2">
+                    Sent {{ refund_request_latest.created_at|date:"M j, Y, g:i A" }}
+                    {% with lu=refund_request_latest.processed_at|default:refund_request_latest.processing_started_at %}
+                    {% if lu %}
+                    · Last update {{ lu|date:"M j, Y, g:i A" }}
+                    {% endif %}
+                    {% endwith %}
+                </div>
+                <div class="small text-muted mb-2">
+                    <span class="text-uppercase fw-semibold me-1" style="letter-spacing: 0.04em;">Current status</span>
+                    <span class="badge-soft">{{ refund_request_latest.status|customer_refund_request_status }}</span>
+                </div>
+                <div class="border rounded-2 p-2 bg-white small mb-3">
+                    <div class="text-muted text-uppercase fw-semibold mb-1" style="font-size: 0.65rem; letter-spacing: 0.04em;">What you told us</div>
+                    <div class="text-body" style="white-space: pre-wrap; max-height: 6.5rem; overflow: auto;">{{ refund_request_latest.reason }}</div>
+                </div>
+                {% if refund_request_latest|customer_refund_request_is_completed %}
+                <p class="small text-muted mb-2 mb-sm-3">Refunded — thanks for your patience.</p>
+                {% elif refund_request_latest|customer_refund_request_is_rejected %}
+                <p class="small text-muted mb-2 mb-sm-3">Not approved — see the refund page for more.</p>
+                {% elif refund_request_latest|customer_refund_request_is_failed %}
+                <p class="small text-muted mb-2 mb-sm-3">Couldn't finish this one — details on the refund page.</p>
+                {% else %}
+                <p class="small text-muted mb-2 mb-sm-3">See the refund page for the full story.</p>
+                {% endif %}
+                <a class="btn btn-outline-success btn-sm w-100" href="{% url 'payments:refund_request' order.id %}">
+                    Open refund page
+                </a>
+            </div>
+            {% elif latest_payment|customer_payment_is_paid %}
+            <div class="mb-3">
+                <a class="btn btn-outline-secondary w-100" href="{% url 'payments:refund_request' order.id %}">
+                    <i class="fas fa-life-ring me-1"></i> Get refund help
+                </a>
+                <div class="small text-muted mt-2">Need a refund or have an issue? We'll walk you through it.</div>
+            </div>
+            {% endif %}
+            {% endif %}
+            {% if order.status == "shipped" %}
+            <form method="post" action="{% url 'customer_confirm_delivery' order.id %}" class="mb-3">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success w-100">
+                    <i class="fas fa-check-circle me-1"></i> Confirm Delivered
+                </button>
+            </form>
+            {% elif order.status == "delivered" %}
+            <div class="alert alert-success py-2 mb-3">
+                <i class="fas fa-check-circle me-1"></i> Delivery confirmed
+            </div>
+            {% endif %}
+            {% if shipping_summary %}
+            <h6 class="mb-2">Vendor Shipping</h6>
+            <div class="d-grid gap-2 mb-3">
+                {% for vendor in shipping_summary %}
+                <div class="border rounded-3 p-2">
+                    <span class="{% if vendor.shipped %}text-success fw-semibold{% else %}text-muted{% endif %}">
+                        {% if vendor.shipped %}
+                        <i class="fas fa-check-circle me-1"></i>
+                        {% else %}
+                        <i class="far fa-circle me-1"></i>
+                        {% endif %}
+                        {{ vendor.producer_name }}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            <div class="d-grid gap-2">
+                {% for step in tracking_steps %}
+                <div class="border rounded-3 p-2 {% if step.done %}border-success{% else %}border-light{% endif %}">
+                    <span class="{% if step.done %}text-success fw-semibold{% else %}text-muted{% endif %}">
+                        {% if step.done %}<i class="fas fa-check-circle me-1"></i>{% else %}<i class="far fa-circle me-1"></i>{% endif %}
+                        {{ step.label }}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
