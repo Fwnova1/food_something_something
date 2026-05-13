@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}{{ post.title }}{% endblock %}
+
+{% block content %}
+<div class="section-head">
+    <h2 class="mb-0">{{ post.title }}</h2>
+    <a href="{% url 'content_list' %}" class="btn btn-outline-success">Back to Recipes & Stories</a>
+</div>
+
+<div class="card card-soft p-4 fade-stagger">
+    <div class="d-flex flex-wrap gap-2 mb-3">
+        <span class="badge-soft">{{ post.get_content_type_display }}</span>
+        <span class="text-muted">By {{ post.author.username }}</span>
+        {% if post.published_at %}
+        <span class="text-muted">{{ post.published_at|date:"M j, Y" }}</span>
+        {% endif %}
+    </div>
+
+    {% if post.cover_image %}
+    <img src="{{ post.cover_image.url }}" alt="{{ post.title }}" class="img-fluid rounded mb-3" style="max-height: 420px; object-fit: cover; width: 100%;">
+    {% endif %}
+
+    {% if post.summary %}
+    <p class="lead">{{ post.summary }}</p>
+    {% endif %}
+
+    <div class="mb-3" style="white-space: pre-line;">{{ post.body }}</div>
+
+    {% if post.content_type == "recipe" %}
+    <hr>
+    <div class="row g-3 mb-3">
+        {% if post.prep_time_minutes %}<div class="col-md-4"><strong>Prep:</strong> {{ post.prep_time_minutes }} mins</div>{% endif %}
+        {% if post.cook_time_minutes %}<div class="col-md-4"><strong>Cook:</strong> {{ post.cook_time_minutes }} mins</div>{% endif %}
+        {% if post.servings %}<div class="col-md-4"><strong>Servings:</strong> {{ post.servings }}</div>{% endif %}
+    </div>
+    {% if post.ingredients %}
+    <h5>Ingredients</h5>
+    <div class="mb-3" style="white-space: pre-line;">{{ post.ingredients }}</div>
+    {% endif %}
+    {% if post.steps %}
+    <h5>Steps</h5>
+    <div style="white-space: pre-line;">{{ post.steps }}</div>
+    {% endif %}
+    {% endif %}
+
+    {% if post.related_product %}
+    <hr>
+    <p class="mb-0">
+        <strong>Related Product:</strong>
+        <a href="{% url 'product_detail' post.related_product.id %}">{{ post.related_product.name }}</a>
+    </p>
+    {% endif %}
+</div>
+{% endblock %}

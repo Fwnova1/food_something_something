@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Checkout - Local Food Marketplace{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-9 col-lg-8">
+        <div class="card card-soft shadow-sm fade-stagger">
+            <div class="card-header py-3" style="background: #ecf4ef; border-bottom: 1px solid rgba(31, 122, 77, 0.18);">
+                <h3 class="mb-0 text-success"><i class="fas fa-credit-card me-2"></i>Checkout</h3>
+            </div>
+            <div class="card-body p-4">
+                <form method="post">
+                    {% csrf_token %}
+                    <h5 class="mb-3">Shipping information</h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="first_name" class="form-label">First name</label>
+                            <input type="text" class="form-control" id="first_name" value="{{ user.first_name }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="last_name" class="form-label">Last name</label>
+                            <input type="text" class="form-control" id="last_name" value="{{ user.last_name }}" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="address" class="form-label">Address</label>
+                        <input type="text" class="form-control" id="address" name="address" value="{{ default_address }}" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="city" class="form-label">City</label>
+                            <input type="text" class="form-control" id="city">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="postcode" class="form-label">Postcode</label>
+                            <input type="text" class="form-control" id="postcode" name="postcode" value="{{ default_postcode }}" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="customer_note" class="form-label">Delivery note (optional)</label>
+                        <textarea class="form-control" id="customer_note" name="customer_note" rows="3" placeholder="Any delivery instructions for producers"></textarea>
+                    </div>
+
+                    <h5 class="mb-2 mt-4">{% if checkout_payment_card_only %}Pay by card{% else %}Payment{% endif %}</h5>
+                    <p class="text-muted small mb-3">
+                        {% if checkout_payment_card_only %}
+                        After you continue, you’ll enter your card on a secure page to place this order.
+                        Your card details are handled by our payment partner; we don’t store them here.
+                        {% else %}
+                        After you continue, you’ll finish paying on a secure page. Choose from the options shown there.
+                        {% endif %}
+                    </p>
+
+                    <div class="d-flex justify-content-between align-items-center mt-4 gap-2 flex-wrap">
+                        <a href="{% url 'cart' %}" class="btn btn-outline-success">
+                            <i class="fas fa-arrow-left me-1"></i> Back to cart
+                        </a>
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="fas fa-lock me-1"></i> Continue to pay
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

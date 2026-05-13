@@ -1,0 +1,99 @@
+{% extends "admin/base_site.html" %}
+{% load i18n payments_tags %}
+
+{% block content %}
+<style>
+  .kpi-grid { display: grid; grid-template-columns: repeat(3, minmax(220px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .kpi { border: 1px solid var(--hairline-color, #e5e5e5); border-radius: 8px; padding: 12px; background: var(--body-bg, #fff); }
+  .kpi .label { color: #666; font-size: 12px; margin-bottom: 4px; }
+  .kpi .value { font-size: 22px; font-weight: 600; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .card { border: 1px solid var(--hairline-color, #e5e5e5); border-radius: 8px; padding: 12px; background: var(--body-bg, #fff); }
+  .bar { height: 10px; background: #e9f5ee; border-radius: 6px; overflow: hidden; }
+  .bar > div { height: 100%; background: #1f7a4d; }
+  .muted { color: #666; }
+  @media (max-width: 1000px) {
+    .kpi-grid { grid-template-columns: 1fr; }
+    .row { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="card" style="margin-bottom: 12px;">
+  <form method="get" style="display:flex; gap:12px; align-items:end; flex-wrap:wrap;">
+    <div>
+      <label class="muted" for="status">Payment status</label><br>
+      <select name="status" id="status">
+        <option value="">All</option>
+        {% for value,label in status_choices %}
+          <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <button type="submit" class="default">Apply</button>
+      <a class="button" href="?">Reset</a>
+    </div>
+  </form>
+  <p class="muted" style="margin-top:10px;">
+    This dashboard is a lightweight demo view. Automated payout integrations are not implemented; producer earnings and platform fees are estimated from stored order-item commission fields.
+  </p>
+</div>
+
+<div class="kpi-grid">
+  <div class="kpi"><div class="label">Total revenue (successful)</div><div class="value">{{ kpis.total_revenue|usd }}</div></div>
+  <div class="kpi"><div class="label">Refund total (fully refunded only)</div><div class="value">{{ kpis.refunded_total|usd }}</div></div>
+  <div class="kpi"><div class="label">Platform commissions (5%)</div><div class="value">{{ kpis.platform_commissions|usd }}</div></div>
+  <div class="kpi"><div class="label">Producer earnings (estimate)</div><div class="value">{{ kpis.producer_earnings|usd }}</div></div>
+  <div class="kpi"><div class="label">Successful payments</div><div class="value">{{ kpis.successful_payments }}</div></div>
+  <div class="kpi"><div class="label">Failed payments</div><div class="value">{{ kpis.failed_payments }}</div></div>
+</div>
+
+<div class="row">
+  <div class="card">
+    <h2 style="margin-top:0;">Payment status distribution</h2>
+    {% if chart_rows %}
+      {% for r in chart_rows %}
+        <div style="display:flex; justify-content:space-between; gap:12px; margin-bottom:6px;">
+          <div><strong>{{ r.status }}</strong> <span class="muted">({{ r.count }})</span></div>
+          <div class="muted">{{ r.pct }}%</div>
+        </div>
+        <div class="bar" style="margin-bottom:10px;"><div style="width: {{ r.pct }}%;"></div></div>
+      {% endfor %}
+      <div class="muted">Refund pending: {{ kpis.refund_pending_payments }} · Refunded: {{ kpis.refunded_payments }} · Partially refunded: {{ kpis.partially_refunded_payments }}</div>
+    {% else %}
+      <p class="muted">No payments found for the selected filter.</p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0;">Recent transactions</h2>
+    <table class="adminlist" style="width:100%;">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>User</th>
+          <th>Order</th>
+          <th>Amount</th>
+          <th>Status</th>
+          <th>Created</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in recent %}
+          <tr>
+            <td><a href="{% url 'admin:payments_payment_change' p.id %}">{{ p.id }}</a></td>
+            <td>{{ p.user }}</td>
+            <td>{% if p.order_id %}<a href="{% url 'admin:orders_order_change' p.order_id %}">#{{ p.order_id }}</a>{% else %}-{% endif %}</td>
+            <td>{{ p.amount|usd }}</td>
+            <td>{{ p.get_status_display }}</td>
+            <td>{{ p.created_at|date:"M j, Y, g:i A" }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6" class="muted">No recent payments.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+

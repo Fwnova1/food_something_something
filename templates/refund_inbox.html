@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% load payments_tags %}
+
+{% block title %}Refund requests · Operations{% endblock %}
+
+{% block content %}
+<div class="section-head">
+    <div>
+        <h2 class="mb-1"><i class="fas fa-inbox text-success me-2"></i>Refund requests</h2>
+        <p class="text-muted small mb-0">Review customer messages, then approve, reject, or process refunds. Actions apply to one request at a time. After you <strong>Process refund</strong>, the shopper's refund page shows <strong>Refunded</strong> on their next visit (refresh if they still have it open).</p>
+    </div>
+    <a href="{% url 'home' %}" class="btn btn-outline-success">
+        <i class="fas fa-arrow-left me-1"></i> Back
+    </a>
+</div>
+
+<div class="card card-soft shadow-sm fade-stagger">
+    <div class="card-body p-4">
+        <form class="row g-3 align-items-end mb-4 pb-3 border-bottom" method="get">
+            <div class="col-md-5 col-lg-4">
+                <label class="form-label fw-semibold mb-1" for="status">Filter by status</label>
+                <select class="form-select" id="status" name="status">
+                    <option value="">All statuses</option>
+                    {% for value,label in status_choices %}
+                    <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3 col-lg-2">
+                <button class="btn btn-success w-100" type="submit">
+                    <i class="fas fa-filter me-1"></i> Apply
+                </button>
+            </div>
+        </form>
+
+        {% if rows %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" style="min-width: 920px;">
+                <thead class="table-light">
+                    <tr>
+                        <th scope="col" class="text-nowrap">Request</th>
+                        <th scope="col">Order</th>
+                        <th scope="col">Customer</th>
+                        <th scope="col" class="text-end text-nowrap">Amount</th>
+                        <th scope="col" class="text-nowrap">Status</th>
+                        <th scope="col">Customer message</th>
+                        <th scope="col" class="text-nowrap">Submitted</th>
+                        <th scope="col" style="width: 14rem;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rr in rows %}
+                    <tr>
+                        <td class="fw-semibold text-nowrap">#{{ rr.id }}</td>
+                        <td>
+                            {% if rr.payment and rr.payment.order_id %}
+                            <a href="{% url 'order_detail' rr.payment.order_id %}">#{{ rr.payment.order_id }}</a>
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="fw-semibold">{{ rr.user.username }}</div>
+                            <div class="small text-muted text-break">{{ rr.user.email|default:"—" }}</div>
+                        </td>
+                        <td class="text-end text-nowrap">
+                            {% if rr.payment %}{{ rr.payment.amount|usd }}{% else %}<span class="text-muted">—</span>{% endif %}
+                        </td>
+                        <td><span class="badge rounded-pill bg-secondary-subtle text-dark border">{{ rr.get_status_display }}</span></td>
+                        <td class="small text-muted" style="max-width: 18rem;">
+                            {% with r=rr.reason|default:"" %}
+                            <span class="d-inline-block text-truncate w-100" title="{{ r }}">{{ r|truncatechars:90 }}</span>
+                            {% if r %}
+                            <details class="mt-1">
+                                <summary class="small text-success" style="cursor: pointer;">Read full message</summary>
+                                <div class="small mt-2 p-2 rounded border bg-white text-body" style="white-space: pre-wrap;">{{ rr.reason }}</div>
+                            </details>
+                            {% endif %}
+                            {% endwith %}
+                        </td>
+                        <td class="small text-muted text-nowrap">{{ rr.created_at|date:"M j, Y" }}<br>{{ rr.created_at|date:"g:i A" }}</td>
+                        <td>
+                            <div class="vstack gap-2 small">
+                                {% if rr.payment and rr.payment.order_id %}
+                                <div>
+                                    <span class="text-muted text-uppercase fw-semibold" style="font-size: 0.65rem; letter-spacing: 0.06em;">Open</span>
+                                    <a class="btn btn-outline-secondary btn-sm w-100 mt-1" href="{% url 'payments:refund_request' rr.payment.order_id %}">
+                                        Customer view
+                                    </a>
+                                </div>
+                                {% endif %}
+
+                                {% if rr.status == "pending" %}
+                                <div class="border rounded-3 p-2 bg-white">
+                                    <span class="text-muted text-uppercase fw-semibold d-block mb-2" style="font-size: 0.65rem; letter-spacing: 0.06em;">Decide</span>
+                                    <form method="post" action="{% url 'payments:refund_approve' rr.id %}" class="mb-2">
+                                        {% csrf_token %}
+                                        <label class="form-label small mb-1" for="note-approve-{{ rr.id }}">Internal note <span class="text-muted fw-normal">(optional)</span></label>
+                                        <textarea id="note-approve-{{ rr.id }}" name="note" class="form-control form-control-sm mb-2" rows="2" placeholder="Team-only context"></textarea>
+                                        <button type="submit" class="btn btn-outline-success btn-sm w-100">Approve</button>
+                                    </form>
+                                    <form method="post" action="{% url 'payments:refund_reject' rr.id %}">
+                                        {% csrf_token %}
+                                        <label class="form-label small mb-1" for="note-reject-{{ rr.id }}">Message to customer <span class="text-muted fw-normal">(optional)</span></label>
+                                        <textarea id="note-reject-{{ rr.id }}" name="note" class="form-control form-control-sm mb-2" rows="2" placeholder="Shown on their refund page if you reject"></textarea>
+                                        <button type="submit" class="btn btn-outline-danger btn-sm w-100">Reject</button>
+                                    </form>
+                                </div>
+                                {% elif rr.status == "approved" %}
+                                <div class="border rounded-3 p-2 bg-white">
+                                    <span class="text-muted text-uppercase fw-semibold d-block mb-2" style="font-size: 0.65rem; letter-spacing: 0.06em;">Settlement</span>
+                                    {% if can_process_refund %}
+                                    <form method="post" action="{% url 'payments:refund_process' rr.id %}" class="mb-2" onsubmit="return confirm('Process refund for request #{{ rr.id }}? This sends money back to the customer.');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-success btn-sm w-100">Process refund</button>
+                                    </form>
+                                    {% else %}
+                                    <p class="small text-muted mb-2">Ask an admin to process this refund in the inbox or admin site.</p>
+                                    {% endif %}
+                                    <form method="post" action="{% url 'payments:refund_reject' rr.id %}">
+                                        {% csrf_token %}
+                                        <label class="form-label small mb-1" for="note-reject-appr-{{ rr.id }}">Message to customer <span class="text-muted fw-normal">(optional)</span></label>
+                                        <textarea id="note-reject-appr-{{ rr.id }}" name="note" class="form-control form-control-sm mb-2" rows="2" placeholder="If you must decline after approving"></textarea>
+                                        <button type="submit" class="btn btn-outline-danger btn-sm w-100">Reject</button>
+                                    </form>
+                                </div>
+                                {% elif rr.status == "processing" %}
+                                <div class="border rounded-3 p-2 bg-white">
+                                    <span class="text-muted text-uppercase fw-semibold d-block mb-2" style="font-size: 0.65rem; letter-spacing: 0.06em;">Settlement</span>
+                                    <p class="small text-muted mb-2">In progress with the payment provider. Retry only if a previous attempt timed out.</p>
+                                    {% if can_process_refund %}
+                                    <form method="post" action="{% url 'payments:refund_process' rr.id %}" onsubmit="return confirm('Retry processing for request #{{ rr.id }}? Safe if the refund did not complete.');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-success btn-sm w-100">Process refund</button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                                {% elif rr.status == "failed" %}
+                                <div class="border rounded-3 p-2 bg-white">
+                                    <span class="text-muted text-uppercase fw-semibold d-block mb-2" style="font-size: 0.65rem; letter-spacing: 0.06em;">Settlement</span>
+                                    <p class="small text-muted mb-2">Last attempt did not finish. You can try again.</p>
+                                    {% if can_process_refund %}
+                                    <form method="post" action="{% url 'payments:refund_process' rr.id %}" onsubmit="return confirm('Retry refund for request #{{ rr.id }}?');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-success btn-sm w-100">Process refund</button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                                {% elif rr.status == "completed" %}
+                                <div class="border rounded-3 p-2 bg-light">
+                                    <p class="small text-muted mb-0">Settled. Customer sees <strong>Refunded</strong> on their refund page and order summary after refresh.</p>
+                                </div>
+                                {% elif rr.status == "rejected" %}
+                                <div class="border rounded-3 p-2 bg-light">
+                                    <p class="small text-muted mb-0">Closed. Customer sees <strong>Not approved</strong> and any note you saved to their refund page.</p>
+                                </div>
+                                {% endif %}
+
+                                {% if user.is_superuser %}
+                                    {% if rr.status == "pending" or rr.status == "rejected" or rr.status == "failed" %}
+                                <div>
+                                    <span class="text-muted text-uppercase fw-semibold" style="font-size: 0.65rem; letter-spacing: 0.06em;">Superuser</span>
+                                    <form method="post" action="{% url 'payments:refund_delete' rr.id %}" class="mt-1" onsubmit="return confirm('Delete refund request #{{ rr.id }}? This cannot be undone.');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-outline-dark btn-sm w-100">Delete</button>
+                                    </form>
+                                </div>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <p class="small text-muted mt-3 mb-0">Showing up to 200 requests, newest first.</p>
+        {% else %}
+        <div class="alert alert-secondary border mb-0">
+            <span class="fw-semibold">No requests match this filter.</span>
+            <span class="small d-block mt-1">Try clearing the status filter or check back later.</span>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

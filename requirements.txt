@@ -1,0 +1,37 @@
+Django>=4.2
+djangorestframework>=3.15
+
+# Image handling (for ImageField)
+Pillow>=10.0
+
+# CORS (frontend connection)
+django-cors-headers>=4.3
+
+# Environment variables
+python-dotenv>=1.0
+
+# Stripe Checkout / webhooks
+stripe>=11.0
+
+# Filtering & searching
+django-filter>=24.1
+
+# Database (optional but recommended)
+psycopg2-binary>=2.9
+
+# Production server
+gunicorn>=21.2
+
+# API utilities
+drf-spectacular>=0.27
+
+# ML inference for quality inspection
+tensorflow-cpu==2.16.1
+numpy==1.26.4
+
+# Development tools (optional but useful)
+ipython
+
+matplotlib
+
+scipy

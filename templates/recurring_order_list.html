@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Recurring Orders{% endblock %}
+
+{% block content %}
+<div class="section-head">
+    <h2 class="mb-0"><i class="fas fa-repeat text-success me-2"></i>Recurring Orders</h2>
+</div>
+
+<div class="card card-soft p-4 fade-stagger">
+    {% if recurring_orders %}
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Frequency</th>
+                    <th>Next Run</th>
+                    <th>Status</th>
+                    <th>Items</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for recurring in recurring_orders %}
+                <tr>
+                    <td>{{ recurring.name }}</td>
+                    <td>{{ recurring.get_frequency_display }}</td>
+                    <td>{{ recurring.next_run_date|date:"M j, Y" }}</td>
+                    <td>{% if recurring.is_active %}<span class="badge-soft">Active</span>{% else %}<span class="badge-soft">Paused</span>{% endif %}</td>
+                    <td>{{ recurring.recurringorderitem_set.count }}</td>
+                    <td>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <a href="{% url 'recurring_order_edit' recurring.id %}" class="btn btn-sm btn-outline-success">Edit</a>
+                            <form method="post" action="{% url 'recurring_order_generate' recurring.id %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-success">Generate Now</button>
+                            </form>
+                            <form method="post" action="{% url 'recurring_order_delete' recurring.id %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-secondary">Delete</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-muted mb-0">No recurring orders yet. Open any order and click <strong>Make Recurring</strong>.</p>
+    {% endif %}
+</div>
+{% endblock %}

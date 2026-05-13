@@ -1,0 +1,33 @@
+# Python bytecode / cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+*.pyo
+
+# Virtual environments
+venv/
+env/
+.Python
+python-env/
+
+# Django
+*.log
+*.pot
+db.sqlite3
+media/
+staticfiles/
+
+# ML / large artefacts
+weights/
+
+# Secrets — never commit (Stripe, Django SECRET_KEY overrides, DB URLs, etc.)
+.env
+.env.*
+!.env.example
+
+# Editor
+.vscode/
+
+# OS
+.DS_Store
