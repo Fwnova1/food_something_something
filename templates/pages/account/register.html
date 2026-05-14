@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Register{% endblock %}
+{% block content %}
+<div class="mx-auto max-w-2xl rounded-2xl border border-emerald-100 bg-white p-6 shadow-card">
+  <h2 class="mb-6 text-center font-display text-3xl text-brand-700">Create Account</h2>
+  <form method="post" class="space-y-4">{% csrf_token %}
+    <div><label class="mb-1 block text-sm font-semibold">Full Name</label>{{ form.full_name }}</div>
+    <div><label class="mb-1 block text-sm font-semibold">Email</label>{{ form.email }}</div>
+    <div class="grid gap-4 md:grid-cols-2"><div><label class="mb-1 block text-sm font-semibold">Phone</label>{{ form.phone }}</div><div><label class="mb-1 block text-sm font-semibold">Postcode</label>{{ form.postcode }}</div></div>
+    <div><label class="mb-1 block text-sm font-semibold">Address</label>{{ form.address }}</div>
+    <div><label class="mb-1 block text-sm font-semibold">Role</label>{{ form.role }}</div>
+    <div id="producer-extra" class="grid gap-4"><div><label class="mb-1 block text-sm font-semibold">Business Name</label>{{ form.business_name }}</div><div><label class="mb-1 block text-sm font-semibold">Contact Name</label>{{ form.contact_name }}</div></div>
+    <div><label class="mb-1 block text-sm font-semibold">Password</label>{{ form.password1 }}</div>
+    <div><label class="mb-1 block text-sm font-semibold">Confirm Password</label>{{ form.password2 }}</div>
+    <label class="flex items-center gap-2 text-sm">{{ form.terms_accepted }} I accept terms</label>
+    <button class="w-full rounded-xl bg-brand-600 px-4 py-3 font-semibold text-white hover:bg-brand-700">Register</button>
+  </form>
+</div>
+<script>(function(){const role=document.getElementById("{{ form.role.id_for_label }}");const box=document.getElementById("producer-extra");if(!role||!box)return;const t=()=>box.style.display=role.value==="producer"?"grid":"none";role.addEventListener("change",t);t();})();</script>
+{% endblock %}

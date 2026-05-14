@@ -9,7 +9,7 @@ urlpatterns = [
 
     # Home
     path("", TemplateView.as_view(
-        template_name="home.html"
+        template_name="pages/home.html"
     ), name="home"
     ),
 
@@ -22,3 +22,4 @@ urlpatterns = [
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+

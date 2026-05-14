@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Quality Inspection{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  <section class="overflow-hidden rounded-3xl border border-emerald-100 bg-white shadow-card">
+    <div class="bg-gradient-to-r from-brand-900 via-brand-700 to-emerald-600 px-6 py-6 text-white">
+      <h2 class="font-display text-3xl leading-tight">Quality Inspection</h2>
+      <p class="mt-2 text-sm text-emerald-50/95">Upload one product photo and get direct model inference with visual explanation.</p>
+    </div>
+
+    <div class="p-6">
+      <form method="post" enctype="multipart/form-data" class="space-y-4">
+        {% csrf_token %}
+        <div class="rounded-2xl border border-dashed border-emerald-300 bg-emerald-50/40 p-4">
+          <label class="mb-2 block text-sm font-semibold text-brand-700">Inspection Image</label>
+          {{ form.inspection_image }}
+          <p class="mt-2 text-xs text-slate-500">Tip: use a clear close-up with good lighting for better predictions.</p>
+        </div>
+        <button class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 font-semibold text-white transition hover:bg-brand-700">
+          <i class="fas fa-microscope"></i>
+          Run Inspection
+        </button>
+      </form>
+    </div>
+  </section>
+
+  {% if latest_result %}
+  <section class="rounded-3xl border border-emerald-100 bg-white p-6 shadow-card">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <h3 class="text-xl font-semibold text-brand-700">Latest Result</h3>
+      <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-emerald-700">
+        {{ latest_result.freshness_label }}
+      </span>
+    </div>
+
+    <div class="mt-4 grid gap-5 lg:grid-cols-2">
+      <div class="space-y-4">
+        <div class="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4">
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Confidence</p>
+          <p class="mt-1 text-3xl font-extrabold text-brand-700">{{ latest_result.freshness_confidence }}%</p>
+          <div class="mt-3 h-2 w-full overflow-hidden rounded-full bg-emerald-100">
+            <div class="h-full rounded-full bg-brand-600" style="width: {{ latest_result.freshness_confidence }}%;"></div>
+          </div>
+        </div>
+
+        <div class="space-y-2 rounded-2xl border border-emerald-100 p-4 text-sm">
+          <p><span class="font-semibold text-slate-700">Size Grade:</span> <span class="text-slate-600">Grade {{ latest_result.size_grade }}</span></p>
+          <p><span class="font-semibold text-slate-700">Color Grade:</span> <span class="text-slate-600">Grade {{ latest_result.color_grade }}</span></p>
+          <p><span class="font-semibold text-slate-700">Overall Grade:</span> <span class="text-slate-600">Grade {{ latest_result.overall_grade }}</span></p>
+          <p><span class="font-semibold text-slate-700">Model:</span> <span class="text-slate-600 break-all">{{ latest_result.assessed_by_model }}</span></p>
+          <p><span class="font-semibold text-slate-700">Explanation:</span> <span class="text-slate-600">{{ latest_result.explanation }}</span></p>
+        </div>
+      </div>
+
+      <div>
+        {% if latest_gradcam_url %}
+          <p class="mb-2 text-sm font-semibold text-brand-700">Activation Map (Grad-CAM)</p>
+          <img src="{{ latest_gradcam_url }}" alt="Grad-CAM visualization" class="w-full rounded-2xl border border-emerald-100 shadow-soft">
+        {% else %}
+          <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
+            Grad-CAM is not available for this prediction.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

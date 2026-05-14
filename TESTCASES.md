@@ -1,4 +1,4 @@
-# Test Case Documentation
+﻿# Test Case Documentation
 
 ---
 
@@ -99,7 +99,7 @@ Validates that authenticated producers can successfully create product listings 
 3. Enter product name: **Organic Free Range Eggs**.
 4. Select category: **Dairy & Eggs**.
 5. Enter detailed description: **Fresh organic eggs from free-range hens, collected daily**.
-6. Enter price: **£3.50 per dozen**.
+6. Enter price: **Â£3.50 per dozen**.
 7. Enter unit: **Dozen**.
 8. Set availability: **In Season (Available)**.
 9. Enter stock quantity: **50**.
@@ -382,7 +382,7 @@ Validates that producers can update order statuses through the order lifecycle a
 * Customer view and notifications are triggered correctly.
 
 ### Acceptance Criteria
-* Status follows logical progression: **Pending → Confirmed → Ready → Delivered**.
+* Status follows logical progression: **Pending â†’ Confirmed â†’ Ready â†’ Delivered**.
 * Only the relevant producer can update their portion of an order.
 * Audit trail maintains all changes.
 
@@ -897,26 +897,37 @@ Validates authentication and authorisation mechanisms ensuring secure access con
 * System is configured with an authentication system.
 * User roles exist: Customer, Producer, Community Group, Restaurant, Admin.
 * Test accounts exist for each role.
+* Security logging is enabled for authentication and authorisation events.
+
+### Test Data
+* `admin_user`: valid Admin account.
+* `customer_user`: valid Customer account.
+* `producer_user_a` and `producer_user_b`: valid Producer accounts.
+* Weak password sample: `123`.
+* Strong password sample: `R3alFarm!2026`.
+* Session timeout setting known (e.g., 30 minutes inactivity).
 
 ### Test Steps
-1. **Password Security:** Attempt to register with a weak password ('123') and verify rejection. Register with a strong password and verify it is hashed in the database.
+1. **Password Security:** Attempt to register with a weak password (`123`) and verify rejection. Register with a strong password and verify it is hashed in the database.
 2. **Login Security:** Attempt login with an incorrect password; verify appropriate error message. Login with correct credentials and verify session creation.
-3. **Authorisation:** Log in as a Customer and attempt to access producer-only features (add/edit products); verify access is denied. 
+3. **Authorisation:** Log in as a Customer and attempt to access producer-only features (add/edit products); verify access is denied.
 4. Log in as a Producer and attempt to view another producer's order details; verify access is denied.
 5. **Session Management:** Log in, close browser, and reopen; verify session persists if 'remember me' was selected. Log out explicitly and verify session termination.
+6. **Session Timeout:** Stay inactive beyond configured timeout and verify forced re-authentication.
+7. **Auditability:** Verify logs capture failed login, successful login, denied access attempts, logout, and timeout events with timestamp and actor.
 
 ### Expected Results
 * Password policy is enforced (length/complexity).
 * Passwords are securely hashed using industry-standard algorithms.
 * Authorisation checks prevent unauthorised feature access.
 * Sessions are managed securely with appropriate timeouts.
+* Authentication/authorisation events are recorded in tamper-evident logs.
 
 ### Acceptance Criteria
 * Role-based access control (RBAC) is appropriately implemented.
 * SQL injection and Cross-site scripting (XSS) are mitigated.
 * Session tokens are secure and unguessable.
 * Security logging captures all authentication events.
-
 ---
 
 ## TC-023: Low Stock Inventory Notifications
@@ -931,27 +942,36 @@ Validates inventory management alerts that notify producers when product stock l
 * Producer is logged in.
 * Products have stock quantities tracked.
 * Low stock threshold feature is enabled and notification system is configured.
+* At least one product supports decimal quantities if applicable (e.g., kg/litre-based products).
+
+### Test Data
+* Product: `Fresh Eggs`.
+* Initial stock: `50` dozen.
+* Low-stock threshold: `10` dozen.
+* Trigger points: `12` (no alert expected), `10` (boundary), `9` (alert expected), `0` (out-of-stock handling).
 
 ### Test Steps
 1. Navigate to product management and edit product: **Fresh Eggs**.
-2. Set current stock: **50 dozen**; set low stock threshold: **10 dozen**.
-3. Simulate orders that reduce stock to 12 dozen (Verify no alert).
-4. Simulate orders reducing stock to 9 dozen (Verify alert generation).
-5. Check notification centre/dashboard for alert: *'Low Stock Alert: Fresh Eggs - Only 9 dozen remaining'*.
-6. Update stock to 40 dozen and verify alert is cleared.
+2. Set current stock: **50 dozen**; set low-stock threshold: **10 dozen**.
+3. Simulate orders that reduce stock to 12 dozen (verify no alert).
+4. Reduce stock to exactly 10 dozen and verify boundary behaviour is consistent with business rule (trigger at `<= threshold` or `< threshold`).
+5. Simulate orders reducing stock to 9 dozen and verify alert generation.
+6. Check notification centre/dashboard for alert: *'Low Stock Alert: Fresh Eggs - Only 9 dozen remaining'*.
+7. Reduce stock to 0 and verify product cannot be purchased and is marked out-of-stock/hidden per configuration.
+8. Update stock to 40 dozen and verify alert is cleared or resolved status is shown.
 
 ### Expected Results
 * System monitors stock levels automatically and generates notifications below threshold.
 * Alerts are displayed in the producer dashboard (and via email if configured).
 * Alerts include product name and current stock level.
 * Prevents accepting orders for out-of-stock items.
+* Boundary condition at the threshold behaves consistently with defined business rule.
 
 ### Acceptance Criteria
 * Stock tracking is accurate and real-time.
 * Threshold settings are flexible per product.
 * System can temporarily hide products from customer view when out of stock.
 * Stock levels are automatically decremented when orders are placed.
-
 ---
 
 ## TC-024: Product Rating and Review System
@@ -965,6 +985,12 @@ Validates the review and rating system allowing customers to provide feedback on
 ### Preconditions
 * Customer is logged in and has a delivered order containing product: **Organic Tomatoes**.
 * Review system is enabled.
+* Another customer account exists to validate aggregate rating updates.
+
+### Test Data
+* Review 1: `5` stars, title `Excellent quality and flavour`.
+* Review 2: `3` stars, title `Good but soft on arrival` (from second customer).
+* Invalid input sample: empty review text if text is mandatory.
 
 ### Test Steps
 1. Navigate to order history and open a **completed/delivered** order.
@@ -975,19 +1001,21 @@ Validates the review and rating system allowing customers to provide feedback on
 6. Observe average rating is updated.
 7. **Edge Case:** Attempt to review a product from an order not yet delivered; verify system prevention.
 8. **Edge Case:** Attempt to review the same product twice.
+9. Log in as second customer, submit Review 2, and verify aggregate rating recalculates correctly.
+10. Submit invalid review input (if text mandatory) and verify validation error message.
 
 ### Expected Results
 * Reviews are linked to delivered orders (verified purchase).
 * Average rating is calculated and displayed.
 * System prevents duplicate reviews and reviews for undelivered items.
 * Customer name is displayed (or anonymous option is honoured).
+* Input validation prevents malformed or incomplete reviews.
 
 ### Acceptance Criteria
 * Rating scale is clear (1-5 stars).
 * Producers can respond to reviews.
 * Reviews are moderated for inappropriate content if needed.
 * Aggregate ratings help customers make informed choices.
-
 ---
 
 ## TC-025: Financial Commission Monitoring
@@ -1001,27 +1029,46 @@ Validates that the 5% network commission is accurately calculated, recorded, and
 ### Preconditions
 * Admin user is logged in with appropriate permissions.
 * Multiple orders exist (single and multi-vendor) from at least the previous 2 weeks.
+* At least one order exists in each relevant status (`Pending`, `Paid`, `Completed`, `Refunded/Cancelled`) to validate report filtering behaviour.
+
+### Test Data
+* **Single-vendor order:** `Order-S1` total **GBP 100.00**.
+* **Multi-vendor order:** `Order-M1` total **GBP 150.00** with:
+  * Producer A subtotal: **GBP 80.00**
+  * Producer B subtotal: **GBP 70.00**
+* **Commission formula:** `Commission = Order/Subtotal x 0.05`
+* **Producer payout formula:** `Payout = Order/Subtotal x 0.95`
+* **Rounding rule:** Values rounded to **2 decimal places** using standard financial rounding.
 
 ### Test Steps
 1. Log in as administrator and navigate to **'Financial Reports'**.
 2. Generate commission report for the previous 2 weeks.
-3. View report: total order value, 5% commission, 95% producer payment, and order count.
-4. Select a specific order and view the detailed breakdown.
-5. **Verification (Single):** For £100 order, verify £5.00 commission and £95.00 payout.
-6. **Verification (Multi-vendor):** For £150 order (Producer A: £80, Producer B: £70), verify:
-    * Total Commission: **£7.50** (5% of £150)
-    * Producer A Payment: **£76.00** (95% of £80)
-    * Producer B Payment: **£66.50** (95% of £70)
-7. Download report in CSV/PDF format.
+3. View report fields: total order value, 5% commission, 95% producer payment, and order count.
+4. Select a specific order and open the detailed breakdown.
+5. **Verification (Single - Order-S1):** Verify:
+   * Commission = **GBP 5.00** (5% of GBP 100.00)
+   * Producer payout = **GBP 95.00** (95% of GBP 100.00)
+6. **Verification (Multi-vendor - Order-M1):** Verify:
+   * Total commission = **GBP 7.50** (5% of GBP 150.00)
+   * Producer A payout = **GBP 76.00** (95% of GBP 80.00)
+   * Producer B payout = **GBP 66.50** (95% of GBP 70.00)
+   * Reconciliation check: **GBP 76.00 + GBP 66.50 + GBP 7.50 = GBP 150.00**
+7. Apply filters by date range, producer, and order status; verify totals and order counts update correctly.
+8. Download the report in CSV and PDF formats.
+9. Open both exported files and verify all totals and per-order values match the on-screen report.
+10. Attempt access with a non-admin account and verify access is denied.
 
 ### Expected Results
 * Admin can access comprehensive, auditable financial reports.
 * Commission calculations are accurate to 2 decimal places.
 * Multi-vendor logic correctly splits payments per supplier based on their items.
 * Reports can be filtered by date, producer, or status.
+* Exported CSV/PDF content matches the report shown in the UI.
+* Unauthorised users cannot access financial reporting pages or exports.
 
 ### Acceptance Criteria
 * Financial calculations comply with accounting standards.
 * Commission split (5%/95%) is consistently applied.
 * Audit trail links all calculations to source orders.
 * System prevents unauthorised access to financial data.
+* Reconciliation integrity holds per order: `Total = Sum(Producer Payouts) + Commission`.

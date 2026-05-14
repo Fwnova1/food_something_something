@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<div class="space-y-7">
+  <section class="overflow-hidden rounded-3xl border border-emerald-100 bg-white shadow-card">
+    <div class="grid lg:grid-cols-2">
+      <div class="bg-gradient-to-br from-brand-900 via-brand-700 to-emerald-500 p-8 text-white lg:p-12">
+        <p class="inline-flex items-center rounded-full border border-white/35 bg-white/10 px-4 py-1 text-sm font-semibold">
+          <i class="fas fa-seedling mr-2"></i>Bristol Regional Food Network
+        </p>
+        <h1 class="mt-4 font-display text-4xl leading-tight lg:text-6xl">Smart local food platform for everyday decisions.</h1>
+        <p class="mt-4 text-white/90">Discover trusted producers, get personalized recommendations, inspect freshness with AI, and reduce waste with surplus deals.</p>
+        <div class="mt-6 flex flex-wrap gap-3">
+          <a href="{% url 'product_list' %}" class="rounded-xl bg-white px-5 py-3 font-semibold text-brand-700">Shop Marketplace</a>
+          <a href="{% url 'for_you_recommendations' %}" class="rounded-xl border border-white/40 px-5 py-3 font-semibold text-white hover:bg-white/10">For You Picks</a>
+        </div>
+        <div class="mt-7 grid grid-cols-3 gap-3 text-sm">
+          <div class="rounded-xl bg-white/15 p-3">
+            <p class="text-white/75">AI Quality</p>
+            <p class="mt-1 text-xl font-extrabold">Live</p>
+          </div>
+          <div class="rounded-xl bg-white/15 p-3">
+            <p class="text-white/75">Recommendations</p>
+            <p class="mt-1 text-xl font-extrabold">Personalized</p>
+          </div>
+          <div class="rounded-xl bg-white/15 p-3">
+            <p class="text-white/75">Surplus Impact</p>
+            <p class="mt-1 text-xl font-extrabold">Reduced Waste</p>
+          </div>
+        </div>
+      </div>
+      <div class="relative min-h-[420px] bg-cover bg-center" style="background-image:url('/media/products/orange.jpg')">
+        <div class="absolute inset-0 bg-gradient-to-t from-brand-900/40 to-transparent"></div>
+        <div class="absolute bottom-4 left-4 right-4 rounded-2xl border border-white/40 bg-white/20 p-4 backdrop-blur-md">
+          <p class="text-xs font-semibold uppercase tracking-widest text-white/85">Platform Pulse</p>
+          <div class="mt-2 space-y-2 text-white">
+            <div>
+              <div class="mb-1 flex justify-between text-xs"><span>Healthy Stock Coverage</span><span>84%</span></div>
+              <div class="h-2 rounded-full bg-white/25"><div class="h-2 w-[84%] rounded-full bg-emerald-300"></div></div>
+            </div>
+            <div>
+              <div class="mb-1 flex justify-between text-xs"><span>Repeat Purchase Signal</span><span>71%</span></div>
+              <div class="h-2 rounded-full bg-white/25"><div class="h-2 w-[71%] rounded-full bg-amber-300"></div></div>
+            </div>
+            <div>
+              <div class="mb-1 flex justify-between text-xs"><span>Surplus Rescue Rate</span><span>63%</span></div>
+              <div class="h-2 rounded-full bg-white/25"><div class="h-2 w-[63%] rounded-full bg-sky-300"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <a href="{% url 'product_list' %}" class="group rounded-2xl border border-emerald-100 bg-white p-5 shadow-soft transition hover:-translate-y-1 hover:shadow-card">
+      <p class="text-xs font-semibold uppercase tracking-wide text-brand-700">Explore</p>
+      <h3 class="mt-2 font-display text-2xl text-slate-800">Marketplace</h3>
+      <p class="mt-2 text-sm text-slate-600">Browse seasonal and year-round products from local producers.</p>
+      <p class="mt-4 text-sm font-semibold text-brand-700">Open Shop <i class="fas fa-arrow-right ml-1 text-xs"></i></p>
+    </a>
+
+    <a href="{% url 'for_you_recommendations' %}" class="group rounded-2xl border border-emerald-100 bg-white p-5 shadow-soft transition hover:-translate-y-1 hover:shadow-card">
+      <p class="text-xs font-semibold uppercase tracking-wide text-brand-700">Personalized</p>
+      <h3 class="mt-2 font-display text-2xl text-slate-800">For You</h3>
+      <p class="mt-2 text-sm text-slate-600">See model-ranked product picks tailored to your purchase patterns.</p>
+      <p class="mt-4 text-sm font-semibold text-brand-700">View Recommendations <i class="fas fa-arrow-right ml-1 text-xs"></i></p>
+    </a>
+
+    <a href="{% url 'ai_insights' %}" class="group rounded-2xl border border-emerald-100 bg-white p-5 shadow-soft transition hover:-translate-y-1 hover:shadow-card">
+      <p class="text-xs font-semibold uppercase tracking-wide text-brand-700">Insights</p>
+      <h3 class="mt-2 font-display text-2xl text-slate-800">AI Center</h3>
+      <p class="mt-2 text-sm text-slate-600">Track recommendations, quick reorders, and demand intelligence.</p>
+      <p class="mt-4 text-sm font-semibold text-brand-700">Open AI Insights <i class="fas fa-arrow-right ml-1 text-xs"></i></p>
+    </a>
+
+    {% if user.is_authenticated and user.role == "producer" or user.is_authenticated and user.role == "admin" %}
+    <a href="{% url 'producer_quality_inspection' %}" class="group rounded-2xl border border-emerald-100 bg-white p-5 shadow-soft transition hover:-translate-y-1 hover:shadow-card">
+      <p class="text-xs font-semibold uppercase tracking-wide text-brand-700">Producer Tool</p>
+      <h3 class="mt-2 font-display text-2xl text-slate-800">Quality Check</h3>
+      <p class="mt-2 text-sm text-slate-600">Upload item photos and get instant model-based freshness inference.</p>
+      <p class="mt-4 text-sm font-semibold text-brand-700">Run Inspection <i class="fas fa-arrow-right ml-1 text-xs"></i></p>
+    </a>
+    {% else %}
+    <a href="{% url 'surplus_deals' %}" class="group rounded-2xl border border-emerald-100 bg-white p-5 shadow-soft transition hover:-translate-y-1 hover:shadow-card">
+      <p class="text-xs font-semibold uppercase tracking-wide text-brand-700">Impact</p>
+      <h3 class="mt-2 font-display text-2xl text-slate-800">Surplus Deals</h3>
+      <p class="mt-2 text-sm text-slate-600">Save money and reduce food waste through time-sensitive offers.</p>
+      <p class="mt-4 text-sm font-semibold text-brand-700">See Deals <i class="fas fa-arrow-right ml-1 text-xs"></i></p>
+    </a>
+    {% endif %}
+  </section>
+
+  <section class="rounded-3xl border border-emerald-100 bg-white p-6 shadow-soft">
+    <div class="flex items-center justify-between">
+      <h3 class="font-display text-2xl text-brand-700">Quick Shortcuts</h3>
+      <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">Top Features</span>
+    </div>
+    <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <a href="{% url 'order_list' %}" class="rounded-xl border border-emerald-100 p-4 hover:bg-emerald-50">
+        <p class="text-sm font-semibold text-slate-800"><i class="fas fa-box mr-2 text-brand-600"></i>Track Orders</p>
+      </a>
+      <a href="{% url 'recurring_order_list' %}" class="rounded-xl border border-emerald-100 p-4 hover:bg-emerald-50">
+        <p class="text-sm font-semibold text-slate-800"><i class="fas fa-sync-alt mr-2 text-brand-600"></i>Recurring Orders</p>
+      </a>
+      <a href="{% url 'content_list' %}" class="rounded-xl border border-emerald-100 p-4 hover:bg-emerald-50">
+        <p class="text-sm font-semibold text-slate-800"><i class="fas fa-book-open mr-2 text-brand-600"></i>Recipes & Content</p>
+      </a>
+      <a href="{% url 'sustainability_report' %}" class="rounded-xl border border-emerald-100 p-4 hover:bg-emerald-50">
+        <p class="text-sm font-semibold text-slate-800"><i class="fas fa-leaf mr-2 text-brand-600"></i>Sustainability</p>
+      </a>
+    </div>
+  </section>
+</div>
+{% endblock %}

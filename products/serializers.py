@@ -45,3 +45,26 @@ class DemandForecastItemSerializer(serializers.Serializer):
     trend = serializers.CharField()
     confidence = serializers.CharField()
     explanation = serializers.CharField()
+
+
+class FoodMilesItemSerializer(serializers.Serializer):
+    order_id = serializers.IntegerField()
+    product_id = serializers.IntegerField()
+    product_name = serializers.CharField()
+    producer = serializers.CharField()
+    from_postcode = serializers.CharField()
+    to_postcode = serializers.CharField()
+    distance_km = serializers.FloatField()
+    distance_miles = serializers.FloatField()
+    estimated = serializers.BooleanField()
+
+
+class SurplusFeedItemSerializer(serializers.Serializer):
+    product_id = serializers.IntegerField(source="id")
+    product_name = serializers.CharField(source="name")
+    producer = serializers.CharField(source="producer.username")
+    base_price = serializers.DecimalField(source="price", max_digits=10, decimal_places=2)
+    discounted_price = serializers.DecimalField(max_digits=10, decimal_places=2)
+    discount_percent = serializers.IntegerField(source="surplus_discount_percent")
+    message = serializers.CharField(source="surplus_message")
+    expires_at = serializers.DateTimeField(source="surplus_expires_at")

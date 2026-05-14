@@ -1,3 +1,10 @@
-tensorflow-cpu==2.16.1
 numpy==1.26.4
 Pillow>=10.0
+ultralytics>=8.3.0
+torch>=2.2
+fastapi>=0.115
+uvicorn[standard]>=0.30
+python-multipart>=0.0.9
+opencv-python-headless>=4.10
+joblib>=1.4
+pandas>=2.2

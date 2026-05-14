@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Profile{% endblock %}
+{% block content %}
+<div class="mx-auto max-w-4xl rounded-2xl border border-emerald-100 bg-white p-6 shadow-card">
+  <h2 class="font-display text-3xl text-brand-700">Profile</h2>
+  <div class="mt-4 grid gap-4 md:grid-cols-2">
+    <div class="rounded-xl bg-emerald-50 p-4 text-sm">
+      <p><b>Username:</b> {{ user.username }}</p><p><b>Name:</b> {{ user.first_name }} {{ user.last_name }}</p><p><b>Email:</b> {{ user.email }}</p><p><b>Role:</b> {{ user.role|title }}</p><p><b>Total Orders:</b> {{ total_orders }}</p>
+    </div>
+    <div class="grid gap-2">
+      <a class="rounded-xl border border-slate-300 px-4 py-2" href="{% url 'product_list' %}">Browse Products</a>
+      <a class="rounded-xl border border-slate-300 px-4 py-2" href="{% url 'order_list' %}">My Orders</a>
+      <a class="rounded-xl border border-slate-300 px-4 py-2" href="{% url 'ai_insights' %}">AI Insights</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

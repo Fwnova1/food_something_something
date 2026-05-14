@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Orders{% endblock %}
+{% block content %}
+<div class="space-y-4">
+  <h2 class="font-display text-3xl text-brand-700">My Orders</h2>
+  <div class="overflow-hidden rounded-2xl border border-emerald-100 bg-white shadow-card">
+    {% if orders %}
+    <div class="overflow-x-auto"><table class="min-w-full text-left text-sm"><thead class="bg-emerald-50"><tr><th class="px-4 py-3">Order</th><th class="px-4 py-3">Date</th><th class="px-4 py-3">Items</th><th class="px-4 py-3">Total</th><th class="px-4 py-3">Status</th><th class="px-4 py-3">Action</th></tr></thead><tbody>{% for order in orders %}<tr class="border-t border-slate-100"><td class="px-4 py-3">#{{ order.id }}</td><td class="px-4 py-3">{{ order.created_at|date:"M j, Y" }}</td><td class="px-4 py-3">{{ order.item_count }}</td><td class="px-4 py-3">${{ order.total }}</td><td class="px-4 py-3">{{ order.status|title }}</td><td class="px-4 py-3"><a href="{% url 'order_detail' order.id %}" class="rounded-lg border border-slate-300 px-3 py-1 text-xs">Details</a></td></tr>{% endfor %}</tbody></table></div>
+    {% else %}<div class="p-8 text-slate-500">No orders yet.</div>{% endif %}
+  </div>
+</div>
+{% endblock %}

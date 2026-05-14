@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% block title %}Manager AI Control Center{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  <section class="rounded-3xl border border-emerald-100 bg-gradient-to-r from-brand-900 to-brand-600 p-6 text-white shadow-card">
+    <h1 class="font-display text-3xl">Manager AI Control Center</h1>
+    <p class="mt-2 text-white/90">Upload externally trained models, review end-user interactions, monitor activity levels, and inspect explainable recommendation outputs.</p>
+  </section>
+
+  <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+    <article class="rounded-2xl border border-emerald-100 bg-white p-4 shadow-soft"><p class="text-sm text-slate-500">Users</p><p class="mt-1 text-2xl font-bold text-brand-700">{{ metrics.users_total }}</p></article>
+    <article class="rounded-2xl border border-emerald-100 bg-white p-4 shadow-soft"><p class="text-sm text-slate-500">Orders (24h)</p><p class="mt-1 text-2xl font-bold text-brand-700">{{ metrics.orders_24h }}</p></article>
+    <article class="rounded-2xl border border-emerald-100 bg-white p-4 shadow-soft"><p class="text-sm text-slate-500">Orders (7d)</p><p class="mt-1 text-2xl font-bold text-brand-700">{{ metrics.orders_7d }}</p></article>
+    <article class="rounded-2xl border border-emerald-100 bg-white p-4 shadow-soft"><p class="text-sm text-slate-500">Order Items (7d)</p><p class="mt-1 text-2xl font-bold text-brand-700">{{ metrics.order_items_7d }}</p></article>
+    <article class="rounded-2xl border border-emerald-100 bg-white p-4 shadow-soft"><p class="text-sm text-slate-500">Reviews (7d)</p><p class="mt-1 text-2xl font-bold text-brand-700">{{ metrics.reviews_7d }}</p></article>
+    <article class="rounded-2xl border border-emerald-100 bg-white p-4 shadow-soft"><p class="text-sm text-slate-500">Quality Checks (7d)</p><p class="mt-1 text-2xl font-bold text-brand-700">{{ metrics.quality_checks_7d }}</p></article>
+  </section>
+
+  <section class="grid gap-6 xl:grid-cols-2">
+    <article class="rounded-2xl border border-emerald-100 bg-white p-5 shadow-soft">
+      <h2 class="font-display text-2xl text-brand-900">Recommendation Model Control</h2>
+      <p class="mt-1 text-sm text-slate-600">Upload or switch the active recommendation model.</p>
+      <p class="mt-2 text-xs text-slate-500">Active model: <span class="font-semibold text-brand-700">{{ active_recommendation_model|default:"Not set" }}</span></p>
+      <form method="post" enctype="multipart/form-data" class="mt-4 space-y-3">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="upload_recommendation_model">
+        <label class="block text-sm font-semibold text-slate-700" for="model_file">Upload model file</label>
+        <input id="model_file" name="model_file" type="file" required>
+        <p class="text-xs text-slate-500">Supported formats: .pkl, .joblib, .pt, .onnx, .h5</p>
+        <button type="submit" class="rounded-lg bg-brand-600 px-4 py-2 font-semibold text-white hover:bg-brand-700">Upload + Activate</button>
+      </form>
+
+      <form method="post" class="mt-4 grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="set_active_recommendation_model">
+        <div>
+          <label class="block text-sm font-semibold text-slate-700" for="active_recommendation_model">Switch active model</label>
+          <select id="active_recommendation_model" name="active_recommendation_model" class="mt-1">
+            {% for file in uploaded_models %}
+            <option value="{{ file.name }}" {% if file.is_active %}selected{% endif %}>{{ file.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="rounded-lg border border-emerald-200 px-4 py-2 font-semibold text-brand-700 hover:bg-emerald-50">Set Active</button>
+      </form>
+
+      <h3 class="mt-6 text-sm font-semibold uppercase tracking-wide text-slate-500">Recommendation Models</h3>
+      <div class="mt-2 overflow-x-auto">
+        <table class="min-w-full text-sm">
+          <thead class="text-left text-slate-500"><tr><th class="py-2 pr-4">File</th><th class="py-2 pr-4">Size</th><th class="py-2">Uploaded</th></tr></thead>
+          <tbody>
+            {% for file in uploaded_models %}
+            <tr class="border-t border-emerald-50">
+              <td class="py-2 pr-4 font-medium {% if file.is_active %}text-brand-700{% else %}text-slate-700{% endif %}">{{ file.name }} {% if file.is_active %}(active){% endif %}</td>
+              <td class="py-2 pr-4 text-slate-600">{{ file.size_kb }} KB</td>
+              <td class="py-2 text-slate-600">{{ file.updated_at|date:"Y-m-d H:i" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3" class="py-3 text-slate-500">No uploaded models yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </article>
+
+    <article class="rounded-2xl border border-emerald-100 bg-white p-5 shadow-soft">
+      <h2 class="font-display text-2xl text-brand-900">Quality YOLO Model Control</h2>
+      <p class="mt-1 text-sm text-slate-600">Upload or switch the active quality inspection YOLO model.</p>
+      <p class="mt-2 text-xs text-slate-500">Active model: <span class="font-semibold text-brand-700">{{ active_quality_model|default:"Not set" }}</span></p>
+
+      <form method="post" enctype="multipart/form-data" class="mt-4 space-y-3">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="upload_quality_model">
+        <label class="block text-sm font-semibold text-slate-700" for="quality_model_file">Upload YOLO model</label>
+        <input id="quality_model_file" name="quality_model_file" type="file" required>
+        <p class="text-xs text-slate-500">Supported formats: .pt, .onnx, .h5</p>
+        <button type="submit" class="rounded-lg bg-brand-600 px-4 py-2 font-semibold text-white hover:bg-brand-700">Upload + Activate</button>
+      </form>
+
+      <form method="post" class="mt-4 grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="set_active_quality_model">
+        <div>
+          <label class="block text-sm font-semibold text-slate-700" for="active_quality_model">Switch active model</label>
+          <select id="active_quality_model" name="active_quality_model" class="mt-1">
+            {% for model in quality_models %}
+            <option value="{{ model.name }}" {% if model.is_active %}selected{% endif %}>{{ model.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="rounded-lg border border-emerald-200 px-4 py-2 font-semibold text-brand-700 hover:bg-emerald-50">Set Active</button>
+      </form>
+
+      <div class="mt-4 overflow-x-auto">
+        <table class="min-w-full text-sm">
+          <thead class="text-left text-slate-500"><tr><th class="py-2 pr-4">Model</th><th class="py-2 pr-4">Size</th><th class="py-2">Updated</th></tr></thead>
+          <tbody>
+            {% for model in quality_models %}
+            <tr class="border-t border-emerald-50">
+              <td class="py-2 pr-4 font-medium {% if model.is_active %}text-brand-700{% else %}text-slate-700{% endif %}">
+                {{ model.name }} {% if model.is_active %}(active){% endif %}
+              </td>
+              <td class="py-2 pr-4 text-slate-600">{{ model.size_kb }} KB</td>
+              <td class="py-2 text-slate-600">{{ model.updated_at|date:"Y-m-d H:i" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3" class="py-3 text-slate-500">No quality models uploaded yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </article>
+
+    <article class="rounded-2xl border border-emerald-100 bg-white p-5 shadow-soft">
+      <h2 class="font-display text-2xl text-brand-900">Top Product Activity</h2>
+      <p class="mt-1 text-sm text-slate-600">Most interacted products based on order-line events.</p>
+      <div class="mt-4 overflow-x-auto">
+        <table class="min-w-full text-sm">
+          <thead class="text-left text-slate-500"><tr><th class="py-2 pr-4">Product</th><th class="py-2">Events</th></tr></thead>
+          <tbody>
+            {% for item in top_products %}
+            <tr class="border-t border-emerald-50">
+              <td class="py-2 pr-4 font-medium text-slate-700">{{ item.product__name }}</td>
+              <td class="py-2 text-slate-600">{{ item.total_qty }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="2" class="py-3 text-slate-500">No order-item events yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </article>
+  </section>
+
+  <section class="rounded-2xl border border-emerald-100 bg-white p-5 shadow-soft">
+    <h2 class="font-display text-2xl text-brand-900">End-User Interaction Feed</h2>
+    <p class="mt-1 text-sm text-slate-600">Consolidated interaction records for model refinement and audit visibility.</p>
+    <div class="mt-4 overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead class="text-left text-slate-500"><tr><th class="py-2 pr-4">Time</th><th class="py-2 pr-4">Type</th><th class="py-2 pr-4">Actor</th><th class="py-2">Details</th></tr></thead>
+        <tbody>
+          {% for event in interaction_feed %}
+          <tr class="border-t border-emerald-50">
+            <td class="py-2 pr-4 text-slate-600">{{ event.at|date:"Y-m-d H:i" }}</td>
+            <td class="py-2 pr-4 font-semibold text-brand-700">{{ event.type }}</td>
+            <td class="py-2 pr-4 text-slate-700">{{ event.actor }}</td>
+            <td class="py-2 text-slate-600">{{ event.details }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="py-3 text-slate-500">No interaction events available yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="rounded-2xl border border-emerald-100 bg-white p-5 shadow-soft">
+    <h2 class="font-display text-2xl text-brand-900">Explainable AI (XAI) Preview</h2>
+    <p class="mt-1 text-sm text-slate-600">
+      {% if sample_user %}
+      Live explanation sample for customer <span class="font-semibold">{{ sample_user.username }}</span>.
+      {% else %}
+      No customer accounts found for XAI preview.
+      {% endif %}
+    </p>
+    <div class="mt-4 space-y-3">
+      {% for row in xai_preview_rows %}
+      <article class="rounded-xl border border-emerald-100 bg-emerald-50/40 p-3">
+        <div class="flex flex-wrap items-center gap-2">
+          <p class="font-semibold text-brand-900">{{ row.product_name }}</p>
+          <span class="rounded-full bg-white px-2 py-1 text-xs font-semibold text-brand-700">{{ row.probability|floatformat:2 }} score</span>
+        </div>
+        <p class="mt-1 text-sm text-slate-700">{{ row.explanation|default:"No explanation provided by model." }}</p>
+        {% if row.top_features %}
+        <div class="mt-2 flex flex-wrap gap-2">
+          {% for f in row.top_features %}
+          <span class="rounded-full border border-emerald-100 bg-white px-2 py-1 text-xs text-slate-700">{{ f.feature }}: {{ f.value }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </article>
+      {% empty %}
+      <p class="text-sm text-slate-500">XAI preview unavailable. Configure recommendation API and ensure it returns explanations.</p>
+      {% endfor %}
+    </div>
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% block title %}Producer CMS{% endblock %}
+{% block content %}
+<div class="space-y-4"><div class="flex items-center justify-between"><h2 class="font-display text-3xl text-brand-700">Producer CMS</h2><a href="{% url 'producer_content_create' %}" class="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white">Create Post</a></div><div class="overflow-hidden rounded-2xl border border-emerald-100 bg-white shadow-card">{% if posts %}<div class="overflow-x-auto"><table class="min-w-full text-left text-sm"><thead class="bg-emerald-50"><tr><th class="px-4 py-3">Title</th><th class="px-4 py-3">Type</th><th class="px-4 py-3">Status</th></tr></thead><tbody>{% for post in posts %}<tr class="border-t border-slate-100"><td class="px-4 py-3">{{ post.title }}</td><td class="px-4 py-3">{{ post.get_content_type_display }}</td><td class="px-4 py-3">{{ post.get_status_display }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="p-8 text-slate-500">No posts yet.</div>{% endif %}</div></div>
+{% endblock %}

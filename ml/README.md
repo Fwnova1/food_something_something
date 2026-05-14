@@ -62,12 +62,55 @@ python ml\train_quality_model.py ^
   --epochs 15
 ```
 
-## What the Django app will do
+## Remote model API server (FastAPI)
 
-`products/quality_inspection.py` follows this order:
+The Django app now calls a remote API for quality inspection.
 
-1. Try `weights/quality_multi_output_model.keras` plus metadata JSON.
-2. Otherwise try `weights/fruit_vegetable_classifier.h5`.
-3. Otherwise fall back to heuristic image analysis.
+Run model server:
 
-That means once you place the trained multi-output model in `weights/`, the app can use it without further code changes.
+```powershell
+cd C:\Users\admin\Desktop\food_something_something
+python -m pip install -r ml\requirements.inference.txt
+$env:QUALITY_MODEL_PATH="C:/Users/admin/Desktop/Asd_project/runs/classify/train4/weights/best.pt"
+$env:QUALITY_MODEL_API_KEY="your-secret-key"
+uvicorn ml.model_api_server:app --host 0.0.0.0 --port 8001
+```
+
+Health check:
+
+```powershell
+curl http://127.0.0.1:8001/health
+```
+
+Prediction endpoint:
+
+- `POST /predict`
+- Form-data:
+  - `image` (file, required)
+  - `produce_type_hint` (text, optional)
+- Header:
+  - `X-API-Key` (required if `QUALITY_MODEL_API_KEY` is set on the server)
+
+Response keys used by Django:
+
+- `produce_type`
+- `freshness_label` (`fresh`/`rotten`/`unknown`)
+- `freshness_confidence` (0-100)
+- `color_score`
+- `size_score`
+- `ripeness_score`
+- `overall_grade` (`A`/`B`/`C`)
+- `suggested_action`
+- `explanation`
+- `assessed_by_model`
+- `gradcam_base64` (preferred if URL is not provided)
+- `gradcam_image_url` (optional)
+
+Django settings side:
+
+```powershell
+$env:QUALITY_MODEL_API_URL="http://127.0.0.1:8001/predict"
+$env:QUALITY_MODEL_API_KEY="your-secret-key"
+$env:QUALITY_MODEL_AUTH_HEADER="X-API-Key"
+$env:QUALITY_MODEL_API_TIMEOUT_SECONDS="45"
+```

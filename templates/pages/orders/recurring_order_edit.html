@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% block title %}Edit Recurring{% endblock %}
+{% block content %}
+<div class="mx-auto max-w-2xl rounded-2xl border border-emerald-100 bg-white p-6 shadow-card"><h2 class="font-display text-3xl text-brand-700">Edit Recurring Order</h2><form method="post" class="mt-4 space-y-4">{% csrf_token %}<div><label class="mb-1 block text-sm font-semibold">Name</label>{{ form.name }}</div><div><label class="mb-1 block text-sm font-semibold">Frequency</label>{{ form.frequency }}</div><div><label class="mb-1 block text-sm font-semibold">Next Run</label>{{ form.next_run_date }}</div><button class="rounded-xl bg-brand-600 px-4 py-2 font-semibold text-white">Save</button></form></div>
+{% endblock %}

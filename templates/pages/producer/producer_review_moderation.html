@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% block title %}Producer Reviews{% endblock %}
+{% block content %}
+<div class="space-y-4"><h2 class="font-display text-3xl text-brand-700">Producer Reviews</h2><div class="rounded-2xl border border-emerald-100 bg-white p-5 shadow-card">{% if reviews %}<div class="space-y-3">{% for review in reviews %}<div class="rounded-xl border border-slate-200 p-4"><div class="flex justify-between"><p class="font-semibold">{{ review.product.name }} - {{ review.title }}</p><span class="text-sm">{{ review.status|title }}</span></div><p class="text-xs text-slate-500">{{ review.user.username }} • {{ review.created_at|date:"M j, Y" }}</p><p class="mt-2">{{ review.comment }}</p></div>{% endfor %}</div>{% else %}<p class="text-slate-500">No reviews found.</p>{% endif %}</div></div>
+{% endblock %}

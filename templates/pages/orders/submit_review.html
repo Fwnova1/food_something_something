@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Submit Review{% endblock %}
+{% block content %}
+<div class="mx-auto max-w-2xl rounded-2xl border border-emerald-100 bg-white p-6 shadow-card">
+  <h2 class="font-display text-3xl text-brand-700">Write Review</h2>
+  <form method="post" class="mt-4 space-y-4">{% csrf_token %}
+    <div><label class="mb-1 block text-sm font-semibold">Rating</label>{{ form.rating }}</div>
+    <div><label class="mb-1 block text-sm font-semibold">Title</label>{{ form.title }}</div>
+    <div><label class="mb-1 block text-sm font-semibold">Comment</label>{{ form.comment }}</div>
+    <button class="rounded-xl bg-brand-600 px-4 py-2 font-semibold text-white">Submit</button>
+  </form>
+</div>
+{% endblock %}

@@ -47,6 +47,11 @@ class Product(models.Model):
     )
 
     image = models.ImageField(upload_to="products/", blank=True)
+    is_surplus = models.BooleanField(default=False)
+    surplus_discount_percent = models.PositiveSmallIntegerField(default=0)
+    surplus_message = models.CharField(max_length=255, blank=True)
+    surplus_expires_at = models.DateTimeField(null=True, blank=True)
+    surplus_notified_at = models.DateTimeField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
 

@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}Recurring Orders{% endblock %}
+{% block content %}
+<div class="space-y-4"><h2 class="font-display text-3xl text-brand-700">Recurring Orders</h2>
+<div class="overflow-hidden rounded-2xl border border-emerald-100 bg-white shadow-card">{% if recurring_orders %}<div class="overflow-x-auto"><table class="min-w-full text-left text-sm"><thead class="bg-emerald-50"><tr><th class="px-4 py-3">Name</th><th class="px-4 py-3">Frequency</th><th class="px-4 py-3">Next Run</th><th class="px-4 py-3">Status</th><th class="px-4 py-3">Actions</th></tr></thead><tbody>{% for recurring in recurring_orders %}<tr class="border-t border-slate-100"><td class="px-4 py-3">{{ recurring.name }}</td><td class="px-4 py-3">{{ recurring.get_frequency_display }}</td><td class="px-4 py-3">{{ recurring.next_run_date }}</td><td class="px-4 py-3">{% if recurring.is_active %}Active{% else %}Paused{% endif %}</td><td class="px-4 py-3"><a href="{% url 'recurring_order_edit' recurring.id %}" class="rounded-lg border border-slate-300 px-3 py-1 text-xs">Edit</a></td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="p-8 text-slate-500">No recurring orders yet.</div>{% endif %}</div>
+</div>
+{% endblock %}
