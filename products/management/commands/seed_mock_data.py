@@ -6,9 +6,10 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
+from django.utils.text import slugify
 
 from orders.models import Cart, CartItem, Order, OrderItem
-from products.models import Category, Product
+from products.models import Category, ContentPost, Product
 
 
 User = get_user_model()
@@ -42,6 +43,7 @@ class Command(BaseCommand):
         customers = self._create_customers()
         categories = self._create_categories()
         products = self._create_products(producers, categories)
+        self._create_content_posts(producers, categories, products)
         self._create_carts(customers, products)
         self._create_orders(customers, products)
 
@@ -66,6 +68,7 @@ class Command(BaseCommand):
         Cart.objects.all().delete()
 
         # Remove catalog data.
+        ContentPost.objects.all().delete()
         Product.objects.all().delete()
         Category.objects.all().delete()
 
@@ -281,3 +284,97 @@ class Command(BaseCommand):
 
                 order.total = total.quantize(Decimal("0.01"))
                 order.save(update_fields=["total"])
+
+    def _create_content_posts(self, producers, categories, products):
+        now = timezone.now()
+        category_map = {c.name: c for c in categories}
+        product_map = {p.name: p for p in products}
+
+        recipes = [
+            {
+                "title": "Roasted Root Vegetable Medley",
+                "summary": "A simple weeknight tray-bake using local carrots and seasonal roots.",
+                "body": "This recipe highlights naturally sweet local vegetables and minimal prep.",
+                "ingredients": "1kg Organic Carrots\n500g potatoes\n2 tbsp olive oil\n1 tsp sea salt\n1 tsp thyme",
+                "steps": "Preheat oven to 200C.\nCut vegetables evenly.\nToss with oil, salt, thyme.\nRoast 35-40 minutes, turning once.",
+                "category": "Vegetables",
+                "related_product": "Organic Carrots",
+                "author": producers[0],
+            },
+            {
+                "title": "Farmhouse Cheddar Toastie",
+                "summary": "Crisp sourdough with melted mature cheddar for a quick local lunch.",
+                "body": "A classic toastie using artisan bread and local dairy.",
+                "ingredients": "2 slices Sourdough Loaf\n80g Cheddar Cheese\n1 tsp butter",
+                "steps": "Butter bread.\nAdd grated cheese.\nToast in pan or press until golden and melted.",
+                "category": "Dairy & Eggs",
+                "related_product": "Cheddar Cheese",
+                "author": producers[1],
+            },
+            {
+                "title": "Apple Jam Breakfast Bowl",
+                "summary": "A light breakfast bowl topped with fresh apples and strawberry jam.",
+                "body": "Balanced sweetness from seasonal fruit and small-batch preserve.",
+                "ingredients": "1 apple\n1 tbsp Strawberry Jam\nyogurt or oats base",
+                "steps": "Slice apple thinly.\nAdd to bowl with yogurt/oats.\nTop with strawberry jam.",
+                "category": "Fruit",
+                "related_product": "Apples",
+                "author": producers[2],
+            },
+        ]
+
+        stories = [
+            {
+                "title": "Early Spring Harvest at Bristol Valley Farm",
+                "summary": "How we plan carrot rotations and soil health before the first major harvest.",
+                "body": "This season we focused on soil moisture retention, companion planting, and lower tillage passes to improve carrot quality.",
+                "category": "Vegetables",
+                "related_product": "Organic Carrots",
+                "author": producers[0],
+            },
+            {
+                "title": "Inside the Dairy: Morning Milking Routine",
+                "summary": "A look at hygiene checks and cooling workflow that keep milk quality consistent.",
+                "body": "From first milking to rapid cooling, our process is built for food safety and consistent flavor week after week.",
+                "category": "Dairy & Eggs",
+                "related_product": "Organic Milk",
+                "author": producers[1],
+            },
+            {
+                "title": "Why Our Bakery Ferments Overnight",
+                "summary": "Slow fermentation improves texture, digestibility, and flavor depth.",
+                "body": "Overnight fermentation gives our sourdough better structure and a balanced tang while reducing waste through tighter planning.",
+                "category": "Bakery",
+                "related_product": "Sourdough Loaf",
+                "author": producers[2],
+            },
+        ]
+
+        def create_post(item, content_type):
+            title = item["title"]
+            slug_base = slugify(title)[:180] or "post"
+            slug = slug_base
+            suffix = 2
+            while ContentPost.objects.filter(slug=slug).exists():
+                slug = f"{slug_base}-{suffix}"
+                suffix += 1
+
+            ContentPost.objects.create(
+                title=title,
+                slug=slug,
+                content_type=content_type,
+                status="published",
+                summary=item["summary"],
+                body=item["body"],
+                ingredients=item.get("ingredients", ""),
+                steps=item.get("steps", ""),
+                category=category_map.get(item["category"]),
+                related_product=product_map.get(item["related_product"]),
+                author=item["author"],
+                published_at=now - timedelta(days=random.randint(1, 21)),
+            )
+
+        for recipe in recipes:
+            create_post(recipe, "recipe")
+        for story in stories:
+            create_post(story, "story")

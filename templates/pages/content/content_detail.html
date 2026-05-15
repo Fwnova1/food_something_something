@@ -1,15 +1,28 @@
-{% extends "base.html" %}
+ï»¿{% extends "base.html" %}
 {% block title %}{{ post.title }}{% endblock %}
 {% block content %}
 <div class="rounded-2xl border border-emerald-100 bg-white p-6 shadow-card">
-  <div class="mb-4 flex items-center justify-between"><h2 class="font-display text-3xl">{{ post.title }}</h2><a href="{% url 'content_list' %}" class="rounded-xl border border-slate-300 px-4 py-2 text-sm">Back</a></div>
-  <p class="text-sm text-slate-500">{{ post.get_content_type_display }}{% if post.published_at %} • {{ post.published_at|date:"M j, Y" }}{% endif %}</p>
-  {% if post.cover_image %}<img src="{{ post.cover_image.url }}" alt="{{ post.title }}" class="my-4 max-h-[420px] w-full rounded-xl object-cover">{% endif %}
+  <div class="mb-4 flex items-center justify-between">
+    <h2 class="font-display text-3xl">{{ post.title }}</h2>
+    <a href="{% url 'content_list' %}" class="rounded-xl border border-slate-300 px-4 py-2 text-sm">Back</a>
+  </div>
+  <p class="text-sm text-slate-500">
+    {{ post.get_content_type_display }}{% if post.published_at %} | {{ post.published_at|date:"M j, Y" }}{% endif %}
+  </p>
+  {% if post.cover_image %}
+  <img src="{{ post.cover_image.url }}" alt="{{ post.title }}" class="my-4 max-h-[420px] w-full rounded-xl object-cover">
+  {% endif %}
   <div class="whitespace-pre-line text-slate-700">{{ post.body }}</div>
   {% if post.content_type == 'recipe' %}
   <div class="mt-4 space-y-4">
-    <div><h4 class="font-display text-2xl">Ingredients</h4><p class="whitespace-pre-line">{{ post.ingredients }}</p></div>
-    <div><h4 class="font-display text-2xl">Steps</h4><p class="whitespace-pre-line">{{ post.steps }}</p></div>
+    <div>
+      <h4 class="font-display text-2xl">Ingredients</h4>
+      <p class="whitespace-pre-line">{{ post.ingredients }}</p>
+    </div>
+    <div>
+      <h4 class="font-display text-2xl">Steps</h4>
+      <p class="whitespace-pre-line">{{ post.steps }}</p>
+    </div>
   </div>
   {% endif %}
 </div>

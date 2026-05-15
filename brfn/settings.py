@@ -55,6 +55,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "users.middleware.SessionTimeoutMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -157,3 +158,6 @@ STRIPE_CHECKOUT_CURRENCY = os.getenv("STRIPE_CHECKOUT_CURRENCY", "usd")
 STRIPE_CHECKOUT_DEMO_CARD_ONLY = os.getenv("STRIPE_CHECKOUT_DEMO_CARD_ONLY", "1").lower() in {"1", "true", "yes", "on"}
 STRIPE_CHECKOUT_PAYMENT_METHOD_TYPES = os.getenv("STRIPE_CHECKOUT_PAYMENT_METHOD_TYPES", "card").split(",")
 STRIPE_WEBHOOK_MAX_BODY_BYTES = int(os.getenv("STRIPE_WEBHOOK_MAX_BODY_BYTES", "1048576"))
+
+# Session security
+SESSION_IDLE_TIMEOUT_SECONDS = int(os.getenv("SESSION_IDLE_TIMEOUT_SECONDS", "1800"))

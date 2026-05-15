@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Producer Balance{% endblock %}
+{% block content %}
+<section class="rounded-2xl border border-emerald-100 bg-white p-6 shadow-soft">
+  <h1 class="font-display text-3xl text-brand-700">Producer Balance</h1>
+  <p class="mt-2 text-sm text-slate-600">Your unpaid balance and payout history.</p>
+
+  <div class="mt-5 rounded-xl border border-emerald-100 bg-emerald-50 p-4">
+    <p class="text-sm font-semibold text-emerald-800">Current Unpaid Balance</p>
+    <p class="mt-1 text-3xl font-bold text-emerald-900">GBP {{ unpaid_total }}</p>
+  </div>
+
+  <h2 class="mt-8 font-display text-2xl text-brand-700">Unpaid Items</h2>
+  <div class="mt-3 overflow-x-auto">
+    <table class="min-w-full text-left text-sm">
+      <thead class="bg-emerald-50">
+        <tr>
+          <th class="px-3 py-2">Order</th>
+          <th class="px-3 py-2">Date</th>
+          <th class="px-3 py-2">Product</th>
+          <th class="px-3 py-2">Qty</th>
+          <th class="px-3 py-2">Payout</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in unpaid_items %}
+        <tr class="border-t border-slate-100">
+          <td class="px-3 py-2">#{{ item.order.id }}</td>
+          <td class="px-3 py-2">{{ item.order.created_at|date:"Y-m-d" }}</td>
+          <td class="px-3 py-2">{{ item.product.name }}</td>
+          <td class="px-3 py-2">{{ item.quantity }}</td>
+          <td class="px-3 py-2">GBP {{ item.producer_amount }}</td>
+        </tr>
+        {% empty %}
+        <tr><td class="px-3 py-3 text-slate-500" colspan="5">No unpaid items.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <h2 class="mt-8 font-display text-2xl text-brand-700">Payout History</h2>
+  <div class="mt-3 overflow-x-auto">
+    <table class="min-w-full text-left text-sm">
+      <thead class="bg-emerald-50">
+        <tr>
+          <th class="px-3 py-2">Paid At</th>
+          <th class="px-3 py-2">Week</th>
+          <th class="px-3 py-2">Amount</th>
+          <th class="px-3 py-2">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for payout in payouts %}
+        <tr class="border-t border-slate-100">
+          <td class="px-3 py-2">{% if payout.paid_at %}{{ payout.paid_at|date:"Y-m-d H:i" }}{% else %}-{% endif %}</td>
+          <td class="px-3 py-2">{{ payout.week_start }} to {{ payout.week_end }}</td>
+          <td class="px-3 py-2">GBP {{ payout.amount }}</td>
+          <td class="px-3 py-2">{{ payout.get_status_display }}</td>
+        </tr>
+        {% empty %}
+        <tr><td class="px-3 py-3 text-slate-500" colspan="4">No payouts yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

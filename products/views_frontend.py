@@ -10,7 +10,7 @@ from django.contrib.auth import get_user_model, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.db import transaction
-from django.db.models import Q, Count
+from django.db.models import Q, Count, Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -30,12 +30,14 @@ from payments.display import (
     customer_receipt_breakdown_for_order,
 )
 from payments.stripe_service import CheckoutSessionError
+from payments.models import Payment, ProducerPayout, ProducerPayoutItem
 from .forecasting import build_demand_forecast_for_scope
 from .models import Category, Product, ProductReview, ContentPost, QualityInspection
 from .quality_inspection import inspect_product_quality
 from .recommendation import build_customer_recommendations, build_quick_reorder_suggestions
 from .recommendation_service import get_recommendation_service
 from sustainability.services import calculate_postcode_distance
+from users.security import deny_with_audit, log_security_event
 
 User = get_user_model()
 TRACKING_STAGES = ["pending", "confirmed", "shipped", "delivered"]
@@ -314,6 +316,15 @@ def product_list(request):
     return render(request, "pages/shop/product_list.html", context)
 
 
+def producer_list_view(request):
+    producers = (
+        User.objects.filter(role="producer")
+        .annotate(product_count=Count("product"))
+        .order_by("business_name", "username")
+    )
+    return render(request, "pages/shop/producer_list.html", {"producers": producers})
+
+
 def product_detail(request, pk):
     product = get_object_or_404(Product.objects.select_related("category", "producer"), id=pk)
     approved_reviews = ProductReview.objects.filter(product=product, status="approved").select_related("user").order_by("-created_at")
@@ -339,7 +350,14 @@ def login_view(request):
         if form.is_valid():
             user = form.get_user()
             login(request, user)
+            remember_me = request.POST.get("remember_me") == "1"
+            if remember_me:
+                request.session.set_expiry(60 * 60 * 24 * 14)
+            else:
+                request.session.set_expiry(0)
+            log_security_event(request, "login_success", detail="User authenticated successfully.", user=user)
             return redirect("home")
+        log_security_event(request, "login_failed", detail="Invalid username or password.")
     else:
         form = AuthenticationForm()
     return render(request, "pages/account/login.html", {"form": form})
@@ -391,6 +409,8 @@ def ai_insights_view(request):
 
 
 def logout_view(request):
+    if request.user.is_authenticated:
+        log_security_event(request, "logout", detail="User logged out.", user=request.user)
     logout(request)
     return redirect("home")
 
@@ -529,8 +549,7 @@ def add_to_cart(request, pk):
 @login_required
 def producer_add_product(request):
     if request.user.role != "producer":
-        messages.error(request, "Only producer accounts can add products.")
-        return redirect("profile")
+        return deny_with_audit(request, "Only producer accounts can add products.")
 
     if request.method == "POST":
         form = ProductForm(request.POST, request.FILES)
@@ -554,8 +573,7 @@ def producer_add_product(request):
 @login_required
 def producer_manage_products(request):
     if request.user.role != "producer":
-        messages.error(request, "Only producer accounts can manage products.")
-        return redirect("profile")
+        return deny_with_audit(request, "Only producer accounts can manage products.")
 
     producer_products = Product.objects.filter(producer=request.user).order_by("-created_at")
     context = {
@@ -567,8 +585,7 @@ def producer_manage_products(request):
 @login_required
 def producer_quality_inspection_view(request):
     if request.user.role not in {"producer", "admin"}:
-        messages.error(request, "Only producer or admin accounts can access quality inspection.")
-        return redirect("profile")
+        return deny_with_audit(request, "Only producer or admin accounts can access quality inspection.")
 
     latest_result = None
     latest_gradcam_url = ""
@@ -832,8 +849,7 @@ def submit_review_view(request, order_id, product_id):
 @login_required
 def producer_order_list_view(request):
     if request.user.role != "producer":
-        messages.error(request, "Only producer accounts can manage order confirmations.")
-        return redirect("profile")
+        return deny_with_audit(request, "Only producer accounts can manage order confirmations.")
 
     orders = (
         Order.objects.filter(orderitem__product__producer=request.user)
@@ -1170,90 +1186,6 @@ def sustainability_report_view(request):
             "estimated_rows": estimated_rows,
         },
     )
-
-
-def surplus_deals_view(request):
-    now = timezone.now()
-    products = (
-        Product.objects.filter(
-            is_surplus=True,
-            surplus_discount_percent__gt=0,
-            surplus_expires_at__isnull=False,
-            surplus_expires_at__gt=now,
-            stock_quantity__gt=0,
-        )
-        .select_related("producer", "category")
-        .order_by("surplus_expires_at", "name")
-    )
-    deal_rows = []
-    for product in products:
-        discount = Decimal(max(1, min(90, product.surplus_discount_percent))) / Decimal("100")
-        discounted_price = (product.price * (Decimal("1.00") - discount)).quantize(Decimal("0.01"))
-        deal_rows.append({"product": product, "discounted_price": discounted_price})
-    return render(request, "pages/sustainability/surplus_deals.html", {"deal_rows": deal_rows})
-
-
-@login_required
-def producer_surplus_publish_view(request):
-    if request.user.role != "producer":
-        messages.error(request, "Only producer accounts can publish surplus offers.")
-        return redirect("profile")
-
-    producer_products = Product.objects.filter(producer=request.user).select_related("category").order_by("name")
-    if request.method == "POST":
-        try:
-            product_id = int(request.POST.get("product_id", "0"))
-        except ValueError:
-            messages.error(request, "Invalid product.")
-            return redirect("producer_surplus_publish")
-
-        product = Product.objects.filter(id=product_id, producer=request.user).first()
-        if not product:
-            messages.error(request, "Product not found.")
-            return redirect("producer_surplus_publish")
-
-        try:
-            discount_percent = int(request.POST.get("discount_percent", "0"))
-        except ValueError:
-            messages.error(request, "Discount must be a number.")
-            return redirect("producer_surplus_publish")
-        if discount_percent < 1 or discount_percent > 90:
-            messages.error(request, "Discount must be between 1 and 90.")
-            return redirect("producer_surplus_publish")
-
-        expires_at_value = (request.POST.get("expires_at") or "").strip()
-        if not expires_at_value:
-            messages.error(request, "Expiry date/time is required.")
-            return redirect("producer_surplus_publish")
-        try:
-            parsed_expires_at = timezone.datetime.fromisoformat(expires_at_value)
-        except ValueError:
-            messages.error(request, "Invalid expiry date/time format.")
-            return redirect("producer_surplus_publish")
-        if timezone.is_naive(parsed_expires_at):
-            parsed_expires_at = timezone.make_aware(parsed_expires_at, timezone.get_current_timezone())
-        if parsed_expires_at <= timezone.now():
-            messages.error(request, "Expiry must be in the future.")
-            return redirect("producer_surplus_publish")
-
-        product.is_surplus = True
-        product.surplus_discount_percent = discount_percent
-        product.surplus_expires_at = parsed_expires_at
-        product.surplus_message = (request.POST.get("message") or "").strip()
-        product.surplus_notified_at = timezone.now()
-        product.save(
-            update_fields=[
-                "is_surplus",
-                "surplus_discount_percent",
-                "surplus_expires_at",
-                "surplus_message",
-                "surplus_notified_at",
-            ]
-        )
-        messages.success(request, f"Surplus offer published for {product.name}.")
-        return redirect("surplus_deals")
-
-    return render(request, "pages/producer/producer_surplus_publish.html", {"producer_products": producer_products})
 
 
 @login_required
@@ -1715,6 +1647,109 @@ def financial_reports_export_pdf_view(request):
             )
     response.write("\n".join(lines).encode("utf-8"))
     return response
+
+
+def _unpaid_producer_order_items(producer_user):
+    paid_order_ids = Payment.objects.filter(status=Payment.Status.SUCCEEDED, order_id__isnull=False).values("order_id")
+    return (
+        OrderItem.objects.filter(
+            product__producer=producer_user,
+            order_id__in=paid_order_ids,
+        )
+        .select_related("order", "product")
+        .exclude(payout_item__isnull=False)
+        .order_by("order__created_at", "id")
+    )
+
+
+@login_required
+def admin_producer_payouts_view(request):
+    if request.user.role != "admin" and not request.user.is_staff:
+        return deny_with_audit(request, "Only admin accounts can process producer payouts.")
+
+    producers = User.objects.filter(role="producer").order_by("business_name", "username")
+    producer_rows = []
+    for producer in producers:
+        unpaid_amount = _unpaid_producer_order_items(producer).aggregate(total=Sum("producer_amount"))["total"] or Decimal("0.00")
+        producer_rows.append(
+            {
+                "producer": producer,
+                "unpaid_amount": unpaid_amount,
+            }
+        )
+
+    recent_payouts = ProducerPayout.objects.select_related("producer").order_by("-paid_at", "-created_at")[:100]
+    return render(
+        request,
+        "pages/admin/producer_payouts.html",
+        {"producer_rows": producer_rows, "recent_payouts": recent_payouts},
+    )
+
+
+@login_required
+def admin_pay_producer_view(request, producer_id: int):
+    if request.method != "POST":
+        return redirect("admin_producer_payouts")
+    if request.user.role != "admin" and not request.user.is_staff:
+        return deny_with_audit(request, "Only admin accounts can process producer payouts.")
+
+    producer = get_object_or_404(User, id=producer_id, role="producer")
+    week_end = timezone.localdate()
+    week_start = week_end - timedelta(days=6)
+    note = (request.POST.get("note") or "").strip()
+
+    with transaction.atomic():
+        items = list(_unpaid_producer_order_items(producer))
+        if not items:
+            messages.info(request, f"No unpaid balance for {producer.business_name or producer.username}.")
+            return redirect("admin_producer_payouts")
+
+        total_amount = sum((item.producer_amount for item in items), Decimal("0.00"))
+        payout = ProducerPayout.objects.create(
+            producer=producer,
+            week_start=week_start,
+            week_end=week_end,
+            amount=total_amount.quantize(Decimal("0.01")),
+            status=ProducerPayout.Status.PAID,
+            paid_at=timezone.now(),
+            note=note,
+        )
+        ProducerPayoutItem.objects.bulk_create(
+            [
+                ProducerPayoutItem(
+                    payout=payout,
+                    order_item=item,
+                    producer_amount=item.producer_amount,
+                )
+                for item in items
+            ]
+        )
+
+    messages.success(
+        request,
+        f"Paid {producer.business_name or producer.username}: GBP {payout.amount} ({len(items)} items).",
+    )
+    return redirect("admin_producer_payouts")
+
+
+@login_required
+def producer_balance_view(request):
+    if request.user.role != "producer":
+        return deny_with_audit(request, "Only producer accounts can view producer balance.")
+
+    unpaid_items = _unpaid_producer_order_items(request.user)
+    unpaid_total = unpaid_items.aggregate(total=Sum("producer_amount"))["total"] or Decimal("0.00")
+    payouts = ProducerPayout.objects.filter(producer=request.user).prefetch_related("items").order_by("-paid_at", "-created_at")
+
+    return render(
+        request,
+        "pages/producer/producer_balance.html",
+        {
+            "unpaid_total": unpaid_total,
+            "unpaid_items": unpaid_items[:100],
+            "payouts": payouts[:100],
+        },
+    )
 
 
 def _unique_content_slug(title, current_post=None):

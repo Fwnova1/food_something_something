@@ -16,7 +16,7 @@ import logging
 
 from brfn.admin_actions import AdminActionSelectLabelMixin
 
-from .models import Payment, PaymentEvent, StripeWebhookReceipt, RefundRequest
+from .models import Payment, PaymentEvent, StripeWebhookReceipt, RefundRequest, ProducerPayout, ProducerPayoutItem
 from orders.commission import platform_revenue_summary
 from .display import (
     format_payment_amount,
@@ -395,3 +395,19 @@ class StripeWebhookReceiptAdmin(AdminActionSelectLabelMixin, admin.ModelAdmin):
     list_filter = ("status", "event_type", "received_at")
     search_fields = ("event_id", "event_type", "error_message")
     readonly_fields = ("event_id", "event_type", "status", "error_message", "received_at", "processed_at")
+
+
+class ProducerPayoutItemInline(admin.TabularInline):
+    model = ProducerPayoutItem
+    extra = 0
+    can_delete = False
+    readonly_fields = ("order_item", "producer_amount")
+
+
+@admin.register(ProducerPayout)
+class ProducerPayoutAdmin(AdminActionSelectLabelMixin, admin.ModelAdmin):
+    list_display = ("id", "producer", "week_start", "week_end", "amount", "status", "paid_at", "created_at")
+    list_filter = ("status", "week_start", "week_end", "created_at")
+    search_fields = ("producer__username", "producer__business_name", "note")
+    readonly_fields = ("created_at",)
+    inlines = (ProducerPayoutItemInline,)

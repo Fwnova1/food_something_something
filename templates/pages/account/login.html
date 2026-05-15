@@ -6,6 +6,10 @@
   <form method="post" class="space-y-4">{% csrf_token %}
     <div><label class="mb-1 block text-sm font-semibold">Username</label>{{ form.username }}</div>
     <div><label class="mb-1 block text-sm font-semibold">Password</label>{{ form.password }}</div>
+    <label class="flex items-center gap-2 text-sm text-slate-700">
+      <input type="checkbox" name="remember_me" value="1" class="h-4 w-4 rounded border-slate-300">
+      Remember me
+    </label>
     <button class="w-full rounded-xl bg-brand-600 px-4 py-3 font-semibold text-white hover:bg-brand-700">Login</button>
   </form>
   <p class="mt-4 text-center text-sm text-slate-600">No account? <a class="font-semibold text-brand-700" href="{% url 'register' %}">Register</a></p>

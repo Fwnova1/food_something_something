@@ -9,7 +9,7 @@
           <i class="fas fa-seedling mr-2"></i>Bristol Regional Food Network
         </p>
         <h1 class="mt-4 font-display text-4xl leading-tight lg:text-6xl">Smart local food platform for everyday decisions.</h1>
-        <p class="mt-4 text-white/90">Discover trusted producers, get personalized recommendations, inspect freshness with AI, and reduce waste with surplus deals.</p>
+        <p class="mt-4 text-white/90">Discover trusted producers, get personalized recommendations, and inspect freshness with AI.</p>
         <div class="mt-6 flex flex-wrap gap-3">
           <a href="{% url 'product_list' %}" class="rounded-xl bg-white px-5 py-3 font-semibold text-brand-700">Shop Marketplace</a>
           <a href="{% url 'for_you_recommendations' %}" class="rounded-xl border border-white/40 px-5 py-3 font-semibold text-white hover:bg-white/10">For You Picks</a>
@@ -24,8 +24,8 @@
             <p class="mt-1 text-xl font-extrabold">Personalized</p>
           </div>
           <div class="rounded-xl bg-white/15 p-3">
-            <p class="text-white/75">Surplus Impact</p>
-            <p class="mt-1 text-xl font-extrabold">Reduced Waste</p>
+            <p class="text-white/75">Producer Network</p>
+            <p class="mt-1 text-xl font-extrabold">Growing</p>
           </div>
         </div>
       </div>
@@ -43,7 +43,7 @@
               <div class="h-2 rounded-full bg-white/25"><div class="h-2 w-[71%] rounded-full bg-amber-300"></div></div>
             </div>
             <div>
-              <div class="mb-1 flex justify-between text-xs"><span>Surplus Rescue Rate</span><span>63%</span></div>
+              <div class="mb-1 flex justify-between text-xs"><span>Producer Fill Rate</span><span>63%</span></div>
               <div class="h-2 rounded-full bg-white/25"><div class="h-2 w-[63%] rounded-full bg-sky-300"></div></div>
             </div>
           </div>
@@ -82,11 +82,11 @@
       <p class="mt-4 text-sm font-semibold text-brand-700">Run Inspection <i class="fas fa-arrow-right ml-1 text-xs"></i></p>
     </a>
     {% else %}
-    <a href="{% url 'surplus_deals' %}" class="group rounded-2xl border border-emerald-100 bg-white p-5 shadow-soft transition hover:-translate-y-1 hover:shadow-card">
-      <p class="text-xs font-semibold uppercase tracking-wide text-brand-700">Impact</p>
-      <h3 class="mt-2 font-display text-2xl text-slate-800">Surplus Deals</h3>
-      <p class="mt-2 text-sm text-slate-600">Save money and reduce food waste through time-sensitive offers.</p>
-      <p class="mt-4 text-sm font-semibold text-brand-700">See Deals <i class="fas fa-arrow-right ml-1 text-xs"></i></p>
+    <a href="{% url 'producer_list' %}" class="group rounded-2xl border border-emerald-100 bg-white p-5 shadow-soft transition hover:-translate-y-1 hover:shadow-card">
+      <p class="text-xs font-semibold uppercase tracking-wide text-brand-700">Directory</p>
+      <h3 class="mt-2 font-display text-2xl text-slate-800">Producers</h3>
+      <p class="mt-2 text-sm text-slate-600">Explore all local producers and discover their offerings.</p>
+      <p class="mt-4 text-sm font-semibold text-brand-700">View Producers <i class="fas fa-arrow-right ml-1 text-xs"></i></p>
     </a>
     {% endif %}
   </section>

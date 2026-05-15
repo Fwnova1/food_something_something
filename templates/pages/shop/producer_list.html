@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Producers{% endblock %}
+{% block content %}
+<section class="rounded-2xl border border-emerald-100 bg-white p-6 shadow-soft">
+  <div class="mb-5">
+    <h1 class="font-display text-3xl text-brand-700">Local Producers</h1>
+    <p class="mt-2 text-sm text-slate-600">Browse farms and local suppliers in the network.</p>
+  </div>
+
+  <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    {% for producer in producers %}
+    <article class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h2 class="text-lg font-bold text-slate-900">{{ producer.business_name|default:producer.username }}</h2>
+      {% if producer.contact_name %}
+      <p class="mt-1 text-sm text-slate-600">Contact: {{ producer.contact_name }}</p>
+      {% endif %}
+      {% if producer.postcode %}
+      <p class="mt-1 text-sm text-slate-600">Postcode: {{ producer.postcode }}</p>
+      {% endif %}
+      <p class="mt-2 text-sm text-slate-700"><b>Products listed:</b> {{ producer.product_count }}</p>
+      {% if producer.phone %}
+      <p class="mt-1 text-sm text-slate-600">Phone: {{ producer.phone }}</p>
+      {% endif %}
+    </article>
+    {% empty %}
+    <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-slate-600 md:col-span-2 lg:col-span-3">
+      No producers are available yet.
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

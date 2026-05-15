@@ -44,8 +44,8 @@
       <nav class="hidden items-center gap-1 text-sm font-semibold md:flex">
         <a class="rounded-lg px-3 py-2 text-white/90 hover:bg-white/10 hover:text-white" href="/">Home</a>
         <a class="rounded-lg px-3 py-2 text-white/90 hover:bg-white/10 hover:text-white" href="{% url 'product_list' %}">Shop</a>
+        <a class="rounded-lg px-3 py-2 text-white/90 hover:bg-white/10 hover:text-white" href="{% url 'producer_list' %}">Producers</a>
         <a class="rounded-lg px-3 py-2 text-white/90 hover:bg-white/10 hover:text-white" href="{% url 'content_list' %}">Content</a>
-        <a class="rounded-lg px-3 py-2 text-white/90 hover:bg-white/10 hover:text-white" href="{% url 'surplus_deals' %}">Surplus</a>
         {% if user.is_authenticated %}
         <a class="rounded-lg px-3 py-2 text-white/90 hover:bg-white/10 hover:text-white" href="{% url 'cart' %}"><i class="fas fa-shopping-cart mr-1"></i>Cart</a>
         <a class="rounded-lg px-3 py-2 text-white/90 hover:bg-white/10 hover:text-white" href="{% url 'order_list' %}">Orders</a>
@@ -61,8 +61,12 @@
             <a class="block rounded-lg px-3 py-2 text-sm hover:bg-emerald-50" href="{% url 'payments:refund_inbox' %}">Refund Inbox</a>
             {% endif %}
             {% if user.role == "admin" %}
-            <a class="block rounded-lg px-3 py-2 text-sm hover:bg-emerald-50" href="{% url 'manager_ai_control_center' %}">Manager AI Center</a>
+            <div class="my-1 border-t border-emerald-100"></div>
+            <p class="px-3 pt-1 text-xs font-bold uppercase tracking-wider text-slate-500">Admin Tools</p>
+            <a class="block rounded-lg px-3 py-2 text-sm hover:bg-emerald-50" href="{% url 'manager_ai_control_center' %}">AI Management</a>
             <a class="block rounded-lg px-3 py-2 text-sm hover:bg-emerald-50" href="{% url 'financial_reports' %}">Financial Reports</a>
+            <a class="block rounded-lg px-3 py-2 text-sm hover:bg-emerald-50" href="{% url 'payments:refund_inbox' %}">Refund Management</a>
+            <a class="block rounded-lg px-3 py-2 text-sm hover:bg-emerald-50" href="{% url 'admin_producer_payouts' %}">Producer Payouts</a>
             {% endif %}
           </div>
         </div>
@@ -77,7 +81,7 @@
             <a class="block rounded-lg px-3 py-2 text-sm hover:bg-emerald-50" href="{% url 'producer_review_moderation' %}">Review Moderation</a>
             <a class="block rounded-lg px-3 py-2 text-sm hover:bg-emerald-50" href="{% url 'producer_content_list' %}">Manage Content</a>
             <a class="block rounded-lg px-3 py-2 text-sm hover:bg-emerald-50" href="{% url 'producer_content_create' %}">Create Content</a>
-            <a class="block rounded-lg px-3 py-2 text-sm hover:bg-emerald-50" href="{% url 'producer_surplus_publish' %}">Publish Surplus</a>
+            <a class="block rounded-lg px-3 py-2 text-sm hover:bg-emerald-50" href="{% url 'producer_balance' %}">Balance</a>
           </div>
         </div>
         {% endif %}
@@ -94,8 +98,8 @@
         <p class="px-3 pt-1 text-xs uppercase tracking-wider text-emerald-200/90">Main</p>
         <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="/">Home</a>
         <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="{% url 'product_list' %}">Shop</a>
+        <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="{% url 'producer_list' %}">Producers</a>
         <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="{% url 'content_list' %}">Content</a>
-        <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="{% url 'surplus_deals' %}">Surplus</a>
         {% if user.is_authenticated %}
         <p class="px-3 pt-2 text-xs uppercase tracking-wider text-emerald-200/90">Tools</p>
         <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="{% url 'ai_insights' %}">AI Insights</a>
@@ -109,8 +113,11 @@
         <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="{% url 'payments:refund_inbox' %}">Refund Inbox</a>
         {% endif %}
         {% if user.role == "admin" %}
-        <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="{% url 'manager_ai_control_center' %}">Manager AI Center</a>
+        <p class="px-3 pt-2 text-xs uppercase tracking-wider text-emerald-200/90">Admin Tools</p>
+        <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="{% url 'manager_ai_control_center' %}">AI Management</a>
         <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="{% url 'financial_reports' %}">Financial Reports</a>
+        <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="{% url 'payments:refund_inbox' %}">Refund Management</a>
+        <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="{% url 'admin_producer_payouts' %}">Producer Payouts</a>
         {% endif %}
         {% if user.role == "producer" or user.role == "admin" %}
         <p class="px-3 pt-2 text-xs uppercase tracking-wider text-emerald-200/90">Producer</p>
@@ -121,7 +128,7 @@
         <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="{% url 'producer_review_moderation' %}">Review Moderation</a>
         <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="{% url 'producer_content_list' %}">Manage Content</a>
         <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="{% url 'producer_content_create' %}">Create Content</a>
-        <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="{% url 'producer_surplus_publish' %}">Publish Surplus</a>
+        <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="{% url 'producer_balance' %}">Balance</a>
         {% endif %}
         <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="{% url 'profile' %}">Profile</a>
         <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="{% url 'logout' %}">Logout</a>

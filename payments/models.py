@@ -181,3 +181,45 @@ class StripeWebhookReceipt(models.Model):
 
     def __str__(self) -> str:
         return f"StripeWebhookReceipt({self.event_id}, {self.status})"
+
+
+class ProducerPayout(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        PAID = "paid", "Paid"
+
+    producer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="producer_payouts",
+    )
+    week_start = models.DateField(db_index=True)
+    week_end = models.DateField(db_index=True)
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PAID, db_index=True)
+    paid_at = models.DateTimeField(null=True, blank=True)
+    note = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-week_end", "-created_at"]
+
+    def __str__(self) -> str:
+        return f"Payout(producer={self.producer_id}, amount={self.amount}, {self.week_start}..{self.week_end})"
+
+
+class ProducerPayoutItem(models.Model):
+    payout = models.ForeignKey(
+        "payments.ProducerPayout",
+        on_delete=models.CASCADE,
+        related_name="items",
+    )
+    order_item = models.OneToOneField(
+        "orders.OrderItem",
+        on_delete=models.CASCADE,
+        related_name="payout_item",
+    )
+    producer_amount = models.DecimalField(max_digits=10, decimal_places=2)
+
+    class Meta:
+        ordering = ["id"]
