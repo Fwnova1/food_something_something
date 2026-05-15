@@ -13,11 +13,23 @@ from django.db import transaction
 from django.db.models import Q, Count
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils.text import slugify
 from django.utils import timezone
 from django.conf import settings
 
 from orders.models import Cart, CartItem, Order, OrderItem, RecurringOrder, RecurringOrderItem
+from payments.checkout import (
+    CheckoutPreparationError,
+    create_payment_pending_order_from_cart,
+    start_stripe_checkout_for_order,
+)
+from payments.display import (
+    build_customer_payment_history_rows,
+    build_customer_payment_status_summary,
+    customer_receipt_breakdown_for_order,
+)
+from payments.stripe_service import CheckoutSessionError
 from .forecasting import build_demand_forecast_for_scope
 from .models import Category, Product, ProductReview, ContentPost, QualityInspection
 from .quality_inspection import inspect_product_quality
@@ -460,41 +472,28 @@ def checkout_view(request):
             messages.error(request, "Delivery address and postcode are required.")
             return redirect("checkout")
 
-        with transaction.atomic():
-            refreshed_items = list(CartItem.objects.select_related("product").filter(cart=cart).select_for_update())
-            if not refreshed_items:
-                messages.error(request, "Your cart is empty.")
-                return redirect("cart")
-
-            total = Decimal("0.00")
-            for item in refreshed_items:
-                if item.quantity > item.product.stock_quantity:
-                    messages.error(request, f"Insufficient stock for {item.product.name}.")
-                    return redirect("cart")
-                total += item.product.price * item.quantity
-
-            order = Order.objects.create(
-                user=request.user,
-                total=total,
+        try:
+            order = create_payment_pending_order_from_cart(
+                request.user,
                 delivery_address=delivery_address,
                 delivery_postcode=delivery_postcode,
                 customer_note=customer_note,
             )
-
-            for item in refreshed_items:
-                OrderItem.objects.create(
-                    order=order,
-                    product=item.product,
-                    quantity=item.quantity,
-                    price=item.product.price,
-                )
-                item.product.stock_quantity -= item.quantity
-                item.product.save(update_fields=["stock_quantity"])
-
-            CartItem.objects.filter(cart=cart).delete()
-
-        messages.success(request, "Your order has been placed successfully.")
-        return redirect("order_detail", pk=order.id)
+            success_url = request.build_absolute_uri(reverse("payments:checkout_success")) + "?session_id={CHECKOUT_SESSION_ID}"
+            cancel_url = request.build_absolute_uri(reverse("payments:checkout_cancel")) + "?session_id={CHECKOUT_SESSION_ID}"
+            checkout_url, _payment = start_stripe_checkout_for_order(
+                order,
+                user=request.user,
+                success_url=success_url,
+                cancel_url=cancel_url,
+            )
+            return redirect(checkout_url)
+        except CheckoutPreparationError as exc:
+            messages.error(request, str(exc))
+            return redirect("checkout")
+        except CheckoutSessionError as exc:
+            messages.error(request, str(exc))
+            return redirect("checkout")
 
     return render(
         request,
@@ -740,7 +739,7 @@ def reorder_order(request, pk):
 @login_required
 def order_detail_view(request, pk):
     order = get_object_or_404(
-        Order.objects.prefetch_related("orderitem_set__product__producer"),
+        Order.objects.prefetch_related("orderitem_set__product__producer", "payments"),
         id=pk,
         user=request.user,
     )
@@ -773,6 +772,10 @@ def order_detail_view(request, pk):
 
     shipping_summary = list(producer_shipping_map.values())
     tracking_steps = build_tracking_steps(order.status)
+    payment_rows = build_customer_payment_history_rows(order)
+    payment_status_summary = build_customer_payment_status_summary(order)
+    customer_receipt = customer_receipt_breakdown_for_order(order)
+    can_request_refund = bool(order.payments.exists())
     return render(
         request,
         "pages/orders/order_detail_tracking.html",
@@ -781,6 +784,10 @@ def order_detail_view(request, pk):
             "item_rows": item_rows,
             "shipping_summary": shipping_summary,
             "tracking_steps": tracking_steps,
+            "payment_rows": payment_rows,
+            "payment_status_summary": payment_status_summary,
+            "customer_receipt": customer_receipt,
+            "can_request_refund": can_request_refund,
         },
     )
 

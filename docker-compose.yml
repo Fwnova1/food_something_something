@@ -1,0 +1,73 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: brfn-web
+    env_file:
+      - .env
+    environment:
+      QUALITY_MODEL_API_URL: http://ai-quality:8000/predict
+      RECOMMENDATION_API_URL: http://ai-recommend:8000/recommend
+      QUALITY_MODEL_API_TIMEOUT_SECONDS: 60
+      RECOMMENDATION_API_TIMEOUT_SECONDS: 30
+    volumes:
+      - ./:/app
+      - sqlite_data:/app/data
+      - media_data:/app/media
+      - weights_data:/app/weights
+    command: >
+      sh -c "mkdir -p /app/data &&
+             if [ ! -f /app/data/db.sqlite3 ] && [ -f /app/db.sqlite3 ]; then cp /app/db.sqlite3 /app/data/db.sqlite3; fi &&
+             ln -sf /app/data/db.sqlite3 /app/db.sqlite3 &&
+             python manage.py migrate &&
+             gunicorn brfn.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120"
+    depends_on:
+      - ai-quality
+      - ai-recommend
+
+  ai-quality:
+    build:
+      context: .
+      dockerfile: ml/Dockerfile
+    container_name: brfn-ai-quality
+    environment:
+      MODEL_PATH: /app/weights/quality_models/best_20260514_003908.pt
+      IMAGE_SIZE: 224
+      RECOMMENDATION_FEATURES_PATH: /app/ml/advanced_processed_data.csv
+      RECOMMENDATION_SOURCE_PATH: /app/ml/merged_data.csv
+    volumes:
+      - ./:/app
+      - weights_data:/app/weights
+
+  ai-recommend:
+    build:
+      context: .
+      dockerfile: ml/Dockerfile
+    container_name: brfn-ai-recommend
+    environment:
+      MODEL_PATH: /app/weights/quality_models/best_20260514_003908.pt
+      IMAGE_SIZE: 224
+      RECOMMENDATION_MODEL_PATH: /app/weights/uploaded_recommendation_models/recommendation_model_20260514_003921.pkl
+      RECOMMENDATION_FEATURES_PATH: /app/ml/advanced_processed_data.csv
+      RECOMMENDATION_SOURCE_PATH: /app/ml/merged_data.csv
+    volumes:
+      - ./:/app
+      - weights_data:/app/weights
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: brfn-gateway
+    depends_on:
+      - web
+      - ai-quality
+      - ai-recommend
+    ports:
+      - "8080:80"
+    volumes:
+      - ./deploy/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+
+volumes:
+  sqlite_data:
+  media_data:
+  weights_data:

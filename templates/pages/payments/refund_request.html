@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Refund Request{% endblock %}
+{% block content %}
+<div class="mx-auto max-w-3xl rounded-2xl border border-emerald-100 bg-white p-6 shadow-soft">
+  <h2 class="font-display text-3xl text-brand-700">Refund Request for Order #{{ order.id }}</h2>
+  <p class="mt-2 text-sm text-slate-700">{{ payment_status_summary }}</p>
+
+  <div class="mt-4 rounded-xl border border-slate-200 p-4 text-sm">
+    <p><b>Payment status:</b> {{ payment.get_status_display }}</p>
+    <p><b>Amount:</b> {{ payment.amount }} {{ payment.currency|upper }}</p>
+    {% if refund_request_open %}
+    <p class="mt-2"><b>Open request:</b> {{ refund_request_open.get_status_display }} (submitted {{ refund_request_open.created_at|date:"Y-m-d H:i" }})</p>
+    {% elif refund_request_latest %}
+    <p class="mt-2"><b>Latest request:</b> {{ refund_request_latest.get_status_display }} (submitted {{ refund_request_latest.created_at|date:"Y-m-d H:i" }})</p>
+    {% endif %}
+  </div>
+
+  {% if can_submit_refund_request %}
+  <form method="post" class="mt-4 space-y-3">
+    {% csrf_token %}
+    <label class="block text-sm font-semibold">Reason</label>
+    <textarea name="reason" rows="4" required placeholder="Describe the issue in at least 10 characters."></textarea>
+    <button class="rounded-xl bg-brand-600 px-5 py-2.5 font-semibold text-white">Submit Refund Request</button>
+  </form>
+  {% else %}
+  <p class="mt-4 text-sm text-slate-600">New refund request submission is currently unavailable for this order.</p>
+  {% endif %}
+</div>
+{% endblock %}

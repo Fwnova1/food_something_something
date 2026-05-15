@@ -21,6 +21,7 @@ gunicorn>=21.2
 
 # API utilities
 drf-spectacular>=0.27
+stripe>=11.0.0
 
 # ML inference for quality inspection
 tensorflow-cpu==2.16.1

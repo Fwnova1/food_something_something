@@ -57,6 +57,9 @@
             <a class="block rounded-lg px-3 py-2 text-sm hover:bg-emerald-50" href="{% url 'sustainability_report' %}">Sustainability</a>
             <a class="block rounded-lg px-3 py-2 text-sm hover:bg-emerald-50" href="{% url 'checkout' %}">Checkout</a>
             <a class="block rounded-lg px-3 py-2 text-sm hover:bg-emerald-50" href="{% url 'recurring_order_list' %}">Recurring Orders</a>
+            {% if user.is_staff or user.role == "admin" or user.role == "producer" %}
+            <a class="block rounded-lg px-3 py-2 text-sm hover:bg-emerald-50" href="{% url 'payments:refund_inbox' %}">Refund Inbox</a>
+            {% endif %}
             {% if user.role == "admin" %}
             <a class="block rounded-lg px-3 py-2 text-sm hover:bg-emerald-50" href="{% url 'manager_ai_control_center' %}">Manager AI Center</a>
             <a class="block rounded-lg px-3 py-2 text-sm hover:bg-emerald-50" href="{% url 'financial_reports' %}">Financial Reports</a>
@@ -102,6 +105,9 @@
         <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="{% url 'checkout' %}">Checkout</a>
         <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="{% url 'order_list' %}">Orders</a>
         <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="{% url 'recurring_order_list' %}">Recurring Orders</a>
+        {% if user.is_staff or user.role == "admin" or user.role == "producer" %}
+        <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="{% url 'payments:refund_inbox' %}">Refund Inbox</a>
+        {% endif %}
         {% if user.role == "admin" %}
         <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="{% url 'manager_ai_control_center' %}">Manager AI Center</a>
         <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="{% url 'financial_reports' %}">Financial Reports</a>

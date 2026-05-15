@@ -15,6 +15,7 @@ urlpatterns = [
 
     # Frontend
     path("", include("products.urls")),
+    path("payments/", include("payments.urls")),
 
     # API
     path("api/", include("products.api_urls")),

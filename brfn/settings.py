@@ -12,9 +12,11 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / ".env")
 
 
 # Quick-start development settings - unsuitable for production
@@ -145,3 +147,13 @@ RECOMMENDATION_API_URL = os.getenv("RECOMMENDATION_API_URL", "")
 RECOMMENDATION_API_KEY = os.getenv("RECOMMENDATION_API_KEY", "")
 RECOMMENDATION_AUTH_HEADER = os.getenv("RECOMMENDATION_AUTH_HEADER", "X-API-Key")
 RECOMMENDATION_API_TIMEOUT_SECONDS = int(os.getenv("RECOMMENDATION_API_TIMEOUT_SECONDS", "20"))
+
+# Stripe payments (demo/test defaults)
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
+STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY", "")
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+STRIPE_API_VERSION = os.getenv("STRIPE_API_VERSION", "2024-11-20.acacia")
+STRIPE_CHECKOUT_CURRENCY = os.getenv("STRIPE_CHECKOUT_CURRENCY", "usd")
+STRIPE_CHECKOUT_DEMO_CARD_ONLY = os.getenv("STRIPE_CHECKOUT_DEMO_CARD_ONLY", "1").lower() in {"1", "true", "yes", "on"}
+STRIPE_CHECKOUT_PAYMENT_METHOD_TYPES = os.getenv("STRIPE_CHECKOUT_PAYMENT_METHOD_TYPES", "card").split(",")
+STRIPE_WEBHOOK_MAX_BODY_BYTES = int(os.getenv("STRIPE_WEBHOOK_MAX_BODY_BYTES", "1048576"))
